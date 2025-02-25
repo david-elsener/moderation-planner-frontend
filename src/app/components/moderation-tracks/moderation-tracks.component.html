@@ -52,8 +52,8 @@
     <span>{{ track.startTime | date: 'short' }}</span>
     <span>{{ track.endTime | date: 'short' }}</span>
     <span>
-      <button mat-icon-button color="warn" (click)="deleteTrack(track.id!)">
-        <mat-icon>delete</mat-icon>
+      <button color="warn" (click)="deleteTrack(track.id!)">
+        delete
       </button>
     </span>
   </div>
