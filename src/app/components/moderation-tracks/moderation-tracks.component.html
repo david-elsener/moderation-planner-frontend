@@ -1,0 +1,56 @@
+<h2>Moderation Tracks</h2>
+
+<form [formGroup]="trackForm" (ngSubmit)="addTrack()" class="form-container">
+  <mat-form-field appearance="fill">
+    <mat-label>Moderator</mat-label>
+    <mat-select formControlName="moderatorId" required>
+      <mat-option *ngFor="let moderator of moderators" [value]="moderator.id">
+        {{ moderator.firstName }} {{ moderator.lastName }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Channel</mat-label>
+    <input matInput formControlName="channel" required>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Start Time</mat-label>
+    <input matInput type="datetime-local" formControlName="startTime" required>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>End Time</mat-label>
+    <input matInput type="datetime-local" formControlName="endTime" required>
+  </mat-form-field>
+
+  <button mat-raised-button color="primary" type="submit">Add Track</button>
+</form>
+
+<hr>
+
+<h3>Existing Tracks</h3>
+
+<!-- Grid Table for Existing Tracks -->
+<div class="tracks-table">
+  <div class="tracks-header">
+    <span>Moderator</span>
+    <span>Channel</span>
+    <span>Start Time</span>
+    <span>End Time</span>
+    <span>Actions</span>
+  </div>
+
+  <div *ngFor="let track of tracks" class="tracks-row">
+    <span>{{ track.moderator.firstName }} {{ track.moderator.lastName }}</span>
+    <span>{{ track.channel }}</span>
+    <span>{{ track.startTime | date: 'short' }}</span>
+    <span>{{ track.endTime | date: 'short' }}</span>
+    <span>
+      <button  style="background-color: red" (click)="deleteTrack(track.id!)">
+        delete
+      </button>
+    </span>
+  </div>
+</div>

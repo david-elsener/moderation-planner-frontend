@@ -1,0 +1,24 @@
+<h2>Moderators</h2>
+
+<form (ngSubmit)="addModerator()">
+  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+  <input type="file" (change)="onFileSelected($event)" required>
+
+  <div *ngIf="imagePreview">
+    <h3>Image Preview:</h3>
+    <img [src]="imagePreview" alt="Image Preview" width="150">
+  </div>
+
+  <button type="submit">Add Moderator</button>
+</form>
+
+<hr>
+
+<ul>
+  <li *ngFor="let moderator of moderators">
+    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+    {{ moderator.firstName }} {{ moderator.lastName }}
+    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+  </li>
+</ul>
