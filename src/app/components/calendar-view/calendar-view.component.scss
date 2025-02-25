@@ -1,0 +1,11 @@
+/* FullCalendar Event Styles */
+.fc-event {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.fc-event img {
+  border-radius: 50%;
+  margin-right: 5px;
+}

@@ -17,12 +17,16 @@
 
   <mat-form-field appearance="fill">
     <mat-label>Start Time</mat-label>
-    <input matInput type="datetime-local" formControlName="startTime" required>
+    <input matInput [matDatepicker]="startPicker" formControlName="startTime" required>
+    <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+    <mat-datepicker #startPicker></mat-datepicker>
   </mat-form-field>
 
   <mat-form-field appearance="fill">
     <mat-label>End Time</mat-label>
-    <input matInput type="datetime-local" formControlName="endTime" required>
+    <input matInput [matDatepicker]="endPicker" formControlName="endTime" required>
+    <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+    <mat-datepicker #endPicker></mat-datepicker>
   </mat-form-field>
 
   <button mat-raised-button color="primary" type="submit">Add Track</button>
@@ -43,13 +47,13 @@
   </div>
 
   <div *ngFor="let track of tracks" class="tracks-row">
-    <span>{{ track.moderator.firstName }} {{ track.moderator.lastName }}</span>
+    <span>{{ track.moderator.firstName }} - {{track.moderator.lastName}}</span>
     <span>{{ track.channel }}</span>
     <span>{{ track.startTime | date: 'short' }}</span>
     <span>{{ track.endTime | date: 'short' }}</span>
     <span>
-      <button  style="background-color: red" (click)="deleteTrack(track.id!)">
-        delete
+      <button mat-icon-button color="warn" (click)="deleteTrack(track.id!)">
+        <mat-icon>delete</mat-icon>
       </button>
     </span>
   </div>

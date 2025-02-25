@@ -7,3 +7,11 @@ export interface ModerationTrack {
   startTime: string;
   endTime: string;
 }
+
+export interface CreateTrack {
+  id?: string;
+  moderatorId: string;
+  channel: string;
+  startTime: string;
+  endTime: string;
+}

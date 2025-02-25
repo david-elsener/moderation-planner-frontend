@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ModerationTrack } from './moderation-track.model';
+import {CreateTrack, ModerationTrack} from './moderation-track.model';
 
 @Injectable({
   providedIn: 'root'
@@ -16,8 +16,8 @@ export class ModerationTrackService {
     return this.http.get<ModerationTrack[]>(this.apiUrl);
   }
 
-  addTrack(track: ModerationTrack): Observable<ModerationTrack> {
-    return this.http.post<ModerationTrack>(this.apiUrl, track);
+  addTrack(track: CreateTrack): Observable<CreateTrack> {
+    return this.http.post<CreateTrack>(this.apiUrl, track);
   }
 
   deleteTrack(id: string): Observable<void> {

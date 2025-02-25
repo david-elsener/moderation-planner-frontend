@@ -6,11 +6,12 @@ import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatOptionModule} from '@angular/material/core';
+import {MatNativeDateModule, MatOptionModule} from '@angular/material/core';
+import {MatDatepickerModule} from '@angular/material/datepicker';
 
 import {ModerationTrackService} from '../../services/moderation-track.service';
 import {ModeratorService} from '../../services/moderator.service';
-import {ModerationTrack} from '../../services/moderation-track.model';
+import {CreateTrack, ModerationTrack} from '../../services/moderation-track.model';
 import {Moderator} from '../../services/moderator.model';
 
 @Component({
@@ -25,7 +26,9 @@ import {Moderator} from '../../services/moderator.model';
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
-    MatOptionModule
+    MatOptionModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   templateUrl: './moderation-tracks.component.html',
   styleUrls: ['./moderation-tracks.component.scss']
@@ -57,13 +60,20 @@ export class ModerationTracksComponent implements OnInit {
 
   loadTracks(): void {
     this.trackService.getTracks().subscribe(tracks => {
-      this.tracks = tracks
-    })
+      this.tracks = tracks.map(track => {
+        const moderator = this.moderators.find(m => m.id === track.moderator.id);
+        return {
+          ...track,
+          moderatorName: moderator ? `${moderator.firstName} ${moderator.lastName}` : 'Unknown Moderator'
+        };
+      });
+    });
   }
 
   loadModerators(): void {
     this.moderatorService.getModerators().subscribe(data => {
       this.moderators = data;
+      this.loadTracks();
     });
   }
 
@@ -73,8 +83,8 @@ export class ModerationTracksComponent implements OnInit {
       return;
     }
 
-    const newTrack: ModerationTrack = {
-      moderator: this.trackForm.value.moderator,
+    const newTrack: CreateTrack = {
+      moderatorId: this.trackForm.value.moderatorId,
       channel: this.trackForm.value.channel,
       startTime: this.trackForm.value.startTime,
       endTime: this.trackForm.value.endTime
