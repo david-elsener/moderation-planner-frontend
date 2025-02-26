@@ -1,13 +1,27 @@
 import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ModeratorService } from '../../services/moderator.service';
-import { Moderator } from '../../services/moderator.model';
+
+// Angular Material Modules
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import {ModeratorService} from "../../services/moderator.service";
+import {Moderator} from "../../services/moderator.model";
 
 @Component({
   selector: 'app-moderators',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatCardModule
+  ],
   templateUrl: './moderators.component.html',
   styleUrls: ['./moderators.component.scss']
 })
@@ -31,16 +45,16 @@ export class ModeratorsComponent implements OnInit {
     });
   }
 
-  onFileSelected(event: any): void {
-    const file = event.target.files[0];
-    if (file) {
-      this.selectedFile = file;
+  onFileSelected(event: Event): void {
+    const fileInput = event.target as HTMLInputElement;
+    if (fileInput.files && fileInput.files.length > 0) {
+      this.selectedFile = fileInput.files[0];
 
       const reader = new FileReader();
       reader.onload = () => {
         this.imagePreview = reader.result;
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(this.selectedFile);
     }
   }
 

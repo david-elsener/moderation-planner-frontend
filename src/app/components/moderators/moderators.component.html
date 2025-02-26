@@ -1,24 +1,41 @@
-<h2>Moderators</h2>
+<h2 style="color: #e10000;">Moderators</h2>
 
-<form (ngSubmit)="addModerator()">
-  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
-  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
-  <input type="file" (change)="onFileSelected($event)" required>
+<form (ngSubmit)="addModerator()" class="moderator-form" style="background-color: #f4f4f4; padding: 16px; border-radius: 8px;">
 
-  <div *ngIf="imagePreview">
-    <h3>Image Preview:</h3>
-    <img [src]="imagePreview" alt="Image Preview" width="150">
+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+    <mat-label>First Name</mat-label>
+    <input matInput type="text" [(ngModel)]="firstName" name="firstName" required>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+    <mat-label>Last Name</mat-label>
+    <input matInput type="text" [(ngModel)]="lastName" name="lastName" required>
+  </mat-form-field>
+
+  <div class="file-upload" style="margin-bottom: 16px;">
+    <button mat-raised-button color="accent" type="button" (click)="fileInput.click()">Select Image</button>
+    <input #fileInput type="file" (change)="onFileSelected($event)" hidden required>
+    <span *ngIf="selectedFile" style="margin-left: 8px;">{{ selectedFile.name }}</span>
   </div>
 
-  <button type="submit">Add Moderator</button>
+  <div *ngIf="imagePreview" class="image-preview" style="margin-bottom: 16px;">
+    <h3>Image Preview:</h3>
+    <img [src]="imagePreview" alt="Image Preview" width="150" style="border-radius: 8px;">
+  </div>
+
+  <button mat-raised-button color="primary" type="submit">Add Moderator</button>
 </form>
 
-<hr>
+<hr style="margin: 24px 0;">
 
-<ul>
-  <li *ngFor="let moderator of moderators">
-    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
-    {{ moderator.firstName }} {{ moderator.lastName }}
-    <button (click)="deleteModerator(moderator.id!)">Delete</button>
-  </li>
-</ul>
+<div class="moderator-list" style="display: flex; flex-wrap: wrap; gap: 16px;">
+  <mat-card *ngFor="let moderator of moderators" class="moderator-card" style="width: 200px; background-color: #ffffff;">
+    <img mat-card-image [src]="moderator.imageData" alt="{{moderator.firstName}}">
+    <mat-card-content>
+      <h3 style="color: #e10000;">{{ moderator.firstName }} {{ moderator.lastName }}</h3>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-raised-button color="warn" (click)="deleteModerator(moderator.id!)">Delete</button>
+    </mat-card-actions>
+  </mat-card>
+</div>
