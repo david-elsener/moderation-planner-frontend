@@ -1,7 +1,8 @@
-<h2>Moderation Tracks</h2>
+<h2 style="color: #e10000;">Moderation Tracks</h2>
 
-<form [formGroup]="trackForm" (ngSubmit)="addTrack()" class="form-container">
-  <mat-form-field appearance="fill">
+<form [formGroup]="trackForm" (ngSubmit)="addTrack()" class="form-container" style="background-color: #f4f4f4; padding: 16px; border-radius: 8px;">
+
+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
     <mat-label>Moderator</mat-label>
     <mat-select formControlName="moderatorId" required>
       <mat-option *ngFor="let moderator of moderators" [value]="moderator.id">
@@ -10,19 +11,19 @@
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field appearance="fill">
+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
     <mat-label>Channel</mat-label>
     <input matInput formControlName="channel" required>
   </mat-form-field>
 
-  <mat-form-field appearance="fill">
+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
     <mat-label>Start Time</mat-label>
     <input matInput [matDatepicker]="startPicker" formControlName="startTime" required>
     <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
     <mat-datepicker #startPicker></mat-datepicker>
   </mat-form-field>
 
-  <mat-form-field appearance="fill">
+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
     <mat-label>End Time</mat-label>
     <input matInput [matDatepicker]="endPicker" formControlName="endTime" required>
     <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
@@ -32,29 +33,20 @@
   <button mat-raised-button color="primary" type="submit">Add Track</button>
 </form>
 
-<hr>
+<hr style="margin: 24px 0;">
 
-<h3>Existing Tracks</h3>
+<h3 style="color: #e10000;">Existing Tracks</h3>
 
-<!-- Grid Table for Existing Tracks -->
-<div class="tracks-table">
-  <div class="tracks-header">
-    <span>Moderator</span>
-    <span>Channel</span>
-    <span>Start Time</span>
-    <span>End Time</span>
-    <span>Actions</span>
-  </div>
-
-  <div *ngFor="let track of tracks" class="tracks-row">
-    <span>{{ track.moderator.firstName }} - {{track.moderator.lastName}}</span>
-    <span>{{ track.channel }}</span>
-    <span>{{ track.startTime | date: 'short' }}</span>
-    <span>{{ track.endTime | date: 'short' }}</span>
-    <span>
-      <button color="warn" (click)="deleteTrack(track.id!)">
-        delete
-      </button>
-    </span>
-  </div>
+<div class="tracks-list" style="display: flex; flex-wrap: wrap; gap: 16px;">
+  <mat-card *ngFor="let track of tracks" class="track-card" style="width: 300px; background-color: #ffffff;">
+    <mat-card-content>
+      <h4 style="color: #e10000;">{{ track.moderator.firstName }} {{ track.moderator.lastName }}</h4>
+      <p><strong>Channel:</strong> {{ track.channel }}</p>
+      <p><strong>Start:</strong> {{ track.startTime | date: 'short' }}</p>
+      <p><strong>End:</strong> {{ track.endTime | date: 'short' }}</p>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-raised-button color="warn" (click)="deleteTrack(track.id!)">Delete</button>
+    </mat-card-actions>
+  </mat-card>
 </div>

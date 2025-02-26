@@ -13,6 +13,7 @@ import {ModerationTrackService} from '../../services/moderation-track.service';
 import {ModeratorService} from '../../services/moderator.service';
 import {CreateTrack, ModerationTrack} from '../../services/moderation-track.model';
 import {Moderator} from '../../services/moderator.model';
+import {MatCard, MatCardActions, MatCardContent} from "@angular/material/card";
 
 @Component({
   selector: 'app-moderation-tracks',
@@ -28,7 +29,10 @@ import {Moderator} from '../../services/moderator.model';
     MatIconModule,
     MatOptionModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatCard,
+    MatCardContent,
+    MatCardActions
   ],
   templateUrl: './moderation-tracks.component.html',
   styleUrls: ['./moderation-tracks.component.scss']
