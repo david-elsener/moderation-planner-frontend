@@ -1,1 +1,92 @@
-/* You can add global styles to this file, and also import other style files */
+// SRF Play TV Farbpalette
+$primary-color: #c60000; // SRF Rot
+$secondary-color: #333333; // Dunkles Grau
+$background-color: #f4f4f4; // Helles Grau für Hintergrund
+$text-color: #000000; // Schwarzer Text
+$accent-color: #e60000; // Helles Rot für Akzente
+
+// Dark Mode Farben
+$dark-primary-color: #ff4c4c;
+$dark-background-color: #121212;
+$dark-text-color: #ffffff;
+
+// Einheitliche Abstände und Layout
+$spacing: 16px;
+$border-radius: 8px;
+
+// Globale Styles
+body {
+  background-color: $background-color;
+  color: $text-color;
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Dark Mode Klasse
+.dark-mode {
+  background-color: $dark-background-color;
+  color: $dark-text-color;
+}
+
+// Material Design Buttons
+button {
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: $border-radius;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  &:hover {
+    background-color: darken($primary-color, 10%);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    background-color: darken($primary-color, 20%);
+    transform: scale(0.95);
+  }
+}
+
+// Dropdowns (mat-select)
+mat-form-field {
+  width: 100%;
+}
+
+mat-select {
+  background-color: white;
+  color: $text-color;
+  border: 1px solid $secondary-color;
+  border-radius: $border-radius;
+}
+
+mat-option {
+  background-color: white !important;
+  color: $text-color !important;
+}
+
+.dark-mode mat-option {
+  background-color: $dark-background-color !important;
+  color: $dark-text-color !important;
+}
+
+// Karten und Container Styles
+.card {
+  background: white;
+  border-radius: $border-radius;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: $spacing;
+  margin-bottom: $spacing;
+}
+
+.app-container {
+  padding: $spacing;
+  max-width: 1200px;
+  margin: auto;
+}

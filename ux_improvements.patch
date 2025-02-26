@@ -1,0 +1,3137 @@
+diff --git a/.vscode/extensions.json b/.vscode/extensions.json
+deleted file mode 100644
+index 77b3745..0000000
+--- a/.vscode/extensions.json
++++ /dev/null
+@@ -1,4 +0,0 @@
+-{
+-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
+-  "recommendations": ["angular.ng-template"]
+-}
+diff --git a/.vscode/launch.json b/.vscode/launch.json
+deleted file mode 100644
+index 925af83..0000000
+--- a/.vscode/launch.json
++++ /dev/null
+@@ -1,20 +0,0 @@
+-{
+-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+-  "version": "0.2.0",
+-  "configurations": [
+-    {
+-      "name": "ng serve",
+-      "type": "chrome",
+-      "request": "launch",
+-      "preLaunchTask": "npm: start",
+-      "url": "http://localhost:4200/"
+-    },
+-    {
+-      "name": "ng test",
+-      "type": "chrome",
+-      "request": "launch",
+-      "preLaunchTask": "npm: test",
+-      "url": "http://localhost:9876/debug.html"
+-    }
+-  ]
+-}
+diff --git a/.vscode/tasks.json b/.vscode/tasks.json
+deleted file mode 100644
+index a298b5b..0000000
+--- a/.vscode/tasks.json
++++ /dev/null
+@@ -1,42 +0,0 @@
+-{
+-  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
+-  "version": "2.0.0",
+-  "tasks": [
+-    {
+-      "type": "npm",
+-      "script": "start",
+-      "isBackground": true,
+-      "problemMatcher": {
+-        "owner": "typescript",
+-        "pattern": "$tsc",
+-        "background": {
+-          "activeOnStart": true,
+-          "beginsPattern": {
+-            "regexp": "(.*?)"
+-          },
+-          "endsPattern": {
+-            "regexp": "bundle generation complete"
+-          }
+-        }
+-      }
+-    },
+-    {
+-      "type": "npm",
+-      "script": "test",
+-      "isBackground": true,
+-      "problemMatcher": {
+-        "owner": "typescript",
+-        "pattern": "$tsc",
+-        "background": {
+-          "activeOnStart": true,
+-          "beginsPattern": {
+-            "regexp": "(.*?)"
+-          },
+-          "endsPattern": {
+-            "regexp": "bundle generation complete"
+-          }
+-        }
+-      }
+-    }
+-  ]
+-}
+diff --git a/create_moderation_planner_frontend.sh b/create_moderation_planner_frontend.sh
+deleted file mode 100755
+index c66f42c..0000000
+--- a/create_moderation_planner_frontend.sh
++++ /dev/null
+@@ -1,320 +0,0 @@
+-#!/bin/bash
+-
+-# Define project root
+-PROJECT_ROOT="moderation-planner-frontend"
+-
+-# Create Angular project
+-npx -p @angular/cli@latest ng new $PROJECT_ROOT --routing --standalone --style=scss --skip-install
+-
+-cd $PROJECT_ROOT
+-
+-# Install required dependencies
+-npm install
+-npm install @angular/material @angular/forms @fullcalendar/angular @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/interaction
+-
+-# Generate Standalone Components and Services
+-npx ng generate component components/moderators --standalone
+-npx ng generate component components/moderation-tracks --standalone
+-npx ng generate component components/calendar-view --standalone
+-npx ng generate service services/moderator
+-npx ng generate service services/moderation-track
+-
+-# Update main.ts for provideRouter and HttpClient
+-cat <<EOL > src/main.ts
+-import { bootstrapApplication } from '@angular/platform-browser';
+-import { AppComponent } from './app/app.component';
+-import { provideRouter } from '@angular/router';
+-import { routes } from './app/app.routes';
+-import { provideHttpClient } from '@angular/common/http';
+-
+-bootstrapApplication(AppComponent, {
+-  providers: [provideRouter(routes), provideHttpClient()]
+-}).catch(err => console.error(err));
+-EOL
+-
+-# Create app.routes.ts
+-cat <<EOL > src/app/app.routes.ts
+-import { Routes } from '@angular/router';
+-import { ModeratorsComponent } from './components/moderators/moderators.component';
+-import { ModerationTracksComponent } from './components/moderation-tracks/moderation-tracks.component';
+-import { CalendarViewComponent } from './components/calendar-view/calendar-view.component';
+-
+-export const routes: Routes = [
+-  { path: '', redirectTo: '/calendar', pathMatch: 'full' },
+-  { path: 'moderators', component: ModeratorsComponent },
+-  { path: 'moderation-tracks', component: ModerationTracksComponent },
+-  { path: 'calendar', component: CalendarViewComponent },
+-  { path: '**', redirectTo: '/calendar' }
+-];
+-EOL
+-
+-# Create app.component.ts (Standalone)
+-cat <<EOL > src/app/app.component.ts
+-import { Component } from '@angular/core';
+-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+-
+-@Component({
+-  selector: 'app-root',
+-  standalone: true,
+-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+-  template: \`
+-    <h1>Moderation Planner</h1>
+-    <nav>
+-      <a routerLink="/calendar" routerLinkActive="active">Calendar</a> |
+-      <a routerLink="/moderators" routerLinkActive="active">Moderators</a> |
+-      <a routerLink="/moderation-tracks" routerLinkActive="active">Moderation Tracks</a>
+-    </nav>
+-    <router-outlet></router-outlet>
+-  \`,
+-  styles: [\`
+-    nav a {
+-      margin-right: 10px;
+-      text-decoration: none;
+-    }
+-    .active {
+-      font-weight: bold;
+-      text-decoration: underline;
+-    }
+-  \`]
+-})
+-export class AppComponent { }
+-EOL
+-
+-# Create Moderator model
+-cat <<EOL > src/app/services/moderator.model.ts
+-export interface Moderator {
+-  id?: string;
+-  firstName: string;
+-  lastName: string;
+-  imageData: string; // Base64 encoded image
+-}
+-EOL
+-
+-# Create ModerationTrack model
+-cat <<EOL > src/app/services/moderation-track.model.ts
+-export interface ModerationTrack {
+-  id?: string;
+-  moderatorId: string;
+-  channel: string;
+-  startTime: string;
+-  endTime: string;
+-}
+-EOL
+-
+-# Create Moderator service
+-cat <<EOL > src/app/services/moderator.service.ts
+-import { Injectable } from '@angular/core';
+-import { HttpClient } from '@angular/common/http';
+-import { Observable } from 'rxjs';
+-import { Moderator } from './moderator.model';
+-
+-@Injectable({
+-  providedIn: 'root'
+-})
+-export class ModeratorService {
+-
+-  private apiUrl = 'http://localhost:8080/api/moderators';
+-
+-  constructor(private http: HttpClient) { }
+-
+-  getModerators(): Observable<Moderator[]> {
+-    return this.http.get<Moderator[]>(this.apiUrl);
+-  }
+-
+-  addModerator(formData: FormData): Observable<Moderator> {
+-    return this.http.post<Moderator>(this.apiUrl, formData);
+-  }
+-
+-  deleteModerator(id: string): Observable<void> {
+-    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+-  }
+-}
+-EOL
+-
+-# Create ModerationTrack service
+-cat <<EOL > src/app/services/moderation-track.service.ts
+-import { Injectable } from '@angular/core';
+-import { HttpClient } from '@angular/common/http';
+-import { Observable } from 'rxjs';
+-import { ModerationTrack } from './moderation-track.model';
+-
+-@Injectable({
+-  providedIn: 'root'
+-})
+-export class ModerationTrackService {
+-
+-  private apiUrl = 'http://localhost:8080/api/tracks';
+-
+-  constructor(private http: HttpClient) { }
+-
+-  getTracks(): Observable<ModerationTrack[]> {
+-    return this.http.get<ModerationTrack[]>(this.apiUrl);
+-  }
+-
+-  addTrack(track: ModerationTrack): Observable<ModerationTrack> {
+-    return this.http.post<ModerationTrack>(this.apiUrl, track);
+-  }
+-
+-  deleteTrack(id: string): Observable<void> {
+-    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+-  }
+-}
+-EOL
+-
+-# Create ModeratorsComponent.ts (Standalone)
+-cat <<EOL > src/app/components/moderators/moderators.component.ts
+-import { Component, OnInit } from '@angular/core';
+-import { CommonModule } from '@angular/common';
+-import { FormsModule } from '@angular/forms';
+-import { ModeratorService } from '../../services/moderator.service';
+-import { Moderator } from '../../services/moderator.model';
+-
+-@Component({
+-  selector: 'app-moderators',
+-  standalone: true,
+-  imports: [CommonModule, FormsModule],
+-  templateUrl: './moderators.component.html',
+-  styleUrls: ['./moderators.component.scss']
+-})
+-export class ModeratorsComponent implements OnInit {
+-
+-  moderators: Moderator[] = [];
+-  firstName: string = '';
+-  lastName: string = '';
+-  selectedFile: File | null = null;
+-  imagePreview: string | ArrayBuffer | null = null;
+-
+-  constructor(private moderatorService: ModeratorService) {}
+-
+-  ngOnInit(): void {
+-    this.loadModerators();
+-  }
+-
+-  loadModerators(): void {
+-    this.moderatorService.getModerators().subscribe(data => {
+-      this.moderators = data;
+-    });
+-  }
+-
+-  onFileSelected(event: any): void {
+-    const file = event.target.files[0];
+-    if (file) {
+-      this.selectedFile = file;
+-
+-      const reader = new FileReader();
+-      reader.onload = () => {
+-        this.imagePreview = reader.result;
+-      };
+-      reader.readAsDataURL(file);
+-    }
+-  }
+-
+-  addModerator(): void {
+-    if (!this.firstName || !this.lastName || !this.selectedFile) {
+-      alert('Please fill all fields and select an image.');
+-      return;
+-    }
+-
+-    const formData = new FormData();
+-    formData.append('firstName', this.firstName);
+-    formData.append('lastName', this.lastName);
+-
+-    if (this.selectedFile) {
+-      formData.append('image', this.selectedFile);
+-    }
+-
+-    this.moderatorService.addModerator(formData).subscribe(() => {
+-      this.loadModerators();
+-      this.firstName = '';
+-      this.lastName = '';
+-      this.selectedFile = null;
+-      this.imagePreview = null;
+-    });
+-  }
+-
+-  deleteModerator(id: string): void {
+-    this.moderatorService.deleteModerator(id).subscribe(() => {
+-      this.loadModerators();
+-    });
+-  }
+-}
+-EOL
+-
+-# Create ModeratorsComponent HTML
+-cat <<EOL > src/app/components/moderators/moderators.component.html
+-<h2>Moderators</h2>
+-
+-<form (ngSubmit)="addModerator()">
+-  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+-  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+-  <input type="file" (change)="onFileSelected(\$event)" required>
+-
+-  <div *ngIf="imagePreview">
+-    <h3>Image Preview:</h3>
+-    <img [src]="imagePreview" alt="Image Preview" width="150">
+-  </div>
+-
+-  <button type="submit">Add Moderator</button>
+-</form>
+-
+-<hr>
+-
+-<ul>
+-  <li *ngFor="let moderator of moderators">
+-    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+-    {{ moderator.firstName }} {{ moderator.lastName }}
+-    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+-  </li>
+-</ul>
+-EOL
+-
+-# Create CalendarViewComponent.ts with FullCalendar Plugins
+-cat <<EOL > src/app/components/calendar-view/calendar-view.component.ts
+-import { Component, OnInit } from '@angular/core';
+-import { FullCalendarModule } from '@fullcalendar/angular';
+-import dayGridPlugin from '@fullcalendar/daygrid';
+-import timeGridPlugin from '@fullcalendar/timegrid';
+-import interactionPlugin from '@fullcalendar/interaction';
+-import { CommonModule } from '@angular/common';
+-import { ModerationTrackService } from '../../services/moderation-track.service';
+-
+-@Component({
+-  selector: 'app-calendar-view',
+-  standalone: true,
+-  imports: [CommonModule, FullCalendarModule],
+-  templateUrl: './calendar-view.component.html',
+-  styleUrls: ['./calendar-view.component.scss']
+-})
+-export class CalendarViewComponent implements OnInit {
+-
+-  calendarOptions: any = {
+-    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+-    initialView: 'dayGridMonth',
+-    events: []
+-  };
+-
+-  constructor(private trackService: ModerationTrackService) {}
+-
+-  ngOnInit(): void {
+-    this.loadTracks();
+-  }
+-
+-  loadTracks(): void {
+-    this.trackService.getTracks().subscribe(tracks => {
+-      this.calendarOptions.events = tracks.map(track => ({
+-        title: \`\${track.channel}\`,
+-        start: track.startTime,
+-        end: track.endTime
+-      }));
+-    });
+-  }
+-}
+-EOL
+-
+-# Create CalendarViewComponent HTML
+-cat <<EOL > src/app/components/calendar-view/calendar-view.component.html
+-<h2>Moderation Calendar</h2>
+-<full-calendar [options]="calendarOptions"></full-calendar>
+-EOL
+-
+-echo "🎉 Angular Frontend mit allen Komponenten, korrektem Routing und Fehlerbehebungen wurde erfolgreich erstellt!"
+diff --git a/src/app/components/moderation-tracks/moderation-tracks.component.html b/src/app/components/moderation-tracks/moderation-tracks.component.html
+index beb7d53..9dba295 100644
+--- a/src/app/components/moderation-tracks/moderation-tracks.component.html
++++ b/src/app/components/moderation-tracks/moderation-tracks.component.html
+@@ -1,7 +1,8 @@
+-<h2>Moderation Tracks</h2>
++<h2 style="color: #e10000;">Moderation Tracks</h2>
+ 
+-<form [formGroup]="trackForm" (ngSubmit)="addTrack()" class="form-container">
+-  <mat-form-field appearance="fill">
++<form [formGroup]="trackForm" (ngSubmit)="addTrack()" class="form-container" style="background-color: #f4f4f4; padding: 16px; border-radius: 8px;">
++
++  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+     <mat-label>Moderator</mat-label>
+     <mat-select formControlName="moderatorId" required>
+       <mat-option *ngFor="let moderator of moderators" [value]="moderator.id">
+@@ -10,19 +11,19 @@
+     </mat-select>
+   </mat-form-field>
+ 
+-  <mat-form-field appearance="fill">
++  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+     <mat-label>Channel</mat-label>
+     <input matInput formControlName="channel" required>
+   </mat-form-field>
+ 
+-  <mat-form-field appearance="fill">
++  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+     <mat-label>Start Time</mat-label>
+     <input matInput [matDatepicker]="startPicker" formControlName="startTime" required>
+     <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+     <mat-datepicker #startPicker></mat-datepicker>
+   </mat-form-field>
+ 
+-  <mat-form-field appearance="fill">
++  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+     <mat-label>End Time</mat-label>
+     <input matInput [matDatepicker]="endPicker" formControlName="endTime" required>
+     <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+@@ -32,29 +33,20 @@
+   <button mat-raised-button color="primary" type="submit">Add Track</button>
+ </form>
+ 
+-<hr>
+-
+-<h3>Existing Tracks</h3>
+-
+-<!-- Grid Table for Existing Tracks -->
+-<div class="tracks-table">
+-  <div class="tracks-header">
+-    <span>Moderator</span>
+-    <span>Channel</span>
+-    <span>Start Time</span>
+-    <span>End Time</span>
+-    <span>Actions</span>
+-  </div>
+-
+-  <div *ngFor="let track of tracks" class="tracks-row">
+-    <span>{{ track.moderator.firstName }} - {{track.moderator.lastName}}</span>
+-    <span>{{ track.channel }}</span>
+-    <span>{{ track.startTime | date: 'short' }}</span>
+-    <span>{{ track.endTime | date: 'short' }}</span>
+-    <span>
+-      <button color="warn" (click)="deleteTrack(track.id!)">
+-        delete
+-      </button>
+-    </span>
+-  </div>
++<hr style="margin: 24px 0;">
++
++<h3 style="color: #e10000;">Existing Tracks</h3>
++
++<div class="tracks-list" style="display: flex; flex-wrap: wrap; gap: 16px;">
++  <mat-card *ngFor="let track of tracks" class="track-card" style="width: 300px; background-color: #ffffff;">
++    <mat-card-content>
++      <h4 style="color: #e10000;">{{ track.moderator.firstName }} {{ track.moderator.lastName }}</h4>
++      <p><strong>Channel:</strong> {{ track.channel }}</p>
++      <p><strong>Start:</strong> {{ track.startTime | date: 'short' }}</p>
++      <p><strong>End:</strong> {{ track.endTime | date: 'short' }}</p>
++    </mat-card-content>
++    <mat-card-actions>
++      <button mat-raised-button color="warn" (click)="deleteTrack(track.id!)">Delete</button>
++    </mat-card-actions>
++  </mat-card>
+ </div>
+diff --git a/src/app/components/moderation-tracks/moderation-tracks.component.ts b/src/app/components/moderation-tracks/moderation-tracks.component.ts
+index 333e53f..f4c7e82 100644
+--- a/src/app/components/moderation-tracks/moderation-tracks.component.ts
++++ b/src/app/components/moderation-tracks/moderation-tracks.component.ts
+@@ -13,6 +13,7 @@ import {ModerationTrackService} from '../../services/moderation-track.service';
+ import {ModeratorService} from '../../services/moderator.service';
+ import {CreateTrack, ModerationTrack} from '../../services/moderation-track.model';
+ import {Moderator} from '../../services/moderator.model';
++import {MatCard, MatCardActions, MatCardContent} from "@angular/material/card";
+ 
+ @Component({
+   selector: 'app-moderation-tracks',
+@@ -28,7 +29,10 @@ import {Moderator} from '../../services/moderator.model';
+     MatIconModule,
+     MatOptionModule,
+     MatDatepickerModule,
+-    MatNativeDateModule
++    MatNativeDateModule,
++    MatCard,
++    MatCardContent,
++    MatCardActions
+   ],
+   templateUrl: './moderation-tracks.component.html',
+   styleUrls: ['./moderation-tracks.component.scss']
+diff --git a/ui-optimization-moderator-tracks.patch b/ui-optimization-moderator-tracks.patch
+deleted file mode 100644
+index 185a2cf..0000000
+--- a/ui-optimization-moderator-tracks.patch
++++ /dev/null
+@@ -1,88 +0,0 @@
+-diff --git a/create_moderation_planner_frontend.sh b/create_moderation_planner_frontend.sh
+-old mode 100755
+-new mode 100644
+-diff --git a/src/app/components/moderation-tracks/moderation-tracks.component.html b/src/app/components/moderation-tracks/moderation-tracks.component.html
+-index beb7d53..9dba295 100644
+---- a/src/app/components/moderation-tracks/moderation-tracks.component.html
+-+++ b/src/app/components/moderation-tracks/moderation-tracks.component.html
+-@@ -1,7 +1,8 @@
+--<h2>Moderation Tracks</h2>
+-+<h2 style="color: #e10000;">Moderation Tracks</h2>
+- 
+--<form [formGroup]="trackForm" (ngSubmit)="addTrack()" class="form-container">
+--  <mat-form-field appearance="fill">
+-+<form [formGroup]="trackForm" (ngSubmit)="addTrack()" class="form-container" style="background-color: #f4f4f4; padding: 16px; border-radius: 8px;">
+-+
+-+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+-     <mat-label>Moderator</mat-label>
+-     <mat-select formControlName="moderatorId" required>
+-       <mat-option *ngFor="let moderator of moderators" [value]="moderator.id">
+-@@ -10,19 +11,19 @@
+-     </mat-select>
+-   </mat-form-field>
+- 
+--  <mat-form-field appearance="fill">
+-+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+-     <mat-label>Channel</mat-label>
+-     <input matInput formControlName="channel" required>
+-   </mat-form-field>
+- 
+--  <mat-form-field appearance="fill">
+-+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+-     <mat-label>Start Time</mat-label>
+-     <input matInput [matDatepicker]="startPicker" formControlName="startTime" required>
+-     <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+-     <mat-datepicker #startPicker></mat-datepicker>
+-   </mat-form-field>
+- 
+--  <mat-form-field appearance="fill">
+-+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+-     <mat-label>End Time</mat-label>
+-     <input matInput [matDatepicker]="endPicker" formControlName="endTime" required>
+-     <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+-@@ -32,29 +33,20 @@
+-   <button mat-raised-button color="primary" type="submit">Add Track</button>
+- </form>
+- 
+--<hr>
+--
+--<h3>Existing Tracks</h3>
+--
+--<!-- Grid Table for Existing Tracks -->
+--<div class="tracks-table">
+--  <div class="tracks-header">
+--    <span>Moderator</span>
+--    <span>Channel</span>
+--    <span>Start Time</span>
+--    <span>End Time</span>
+--    <span>Actions</span>
+--  </div>
+--
+--  <div *ngFor="let track of tracks" class="tracks-row">
+--    <span>{{ track.moderator.firstName }} - {{track.moderator.lastName}}</span>
+--    <span>{{ track.channel }}</span>
+--    <span>{{ track.startTime | date: 'short' }}</span>
+--    <span>{{ track.endTime | date: 'short' }}</span>
+--    <span>
+--      <button color="warn" (click)="deleteTrack(track.id!)">
+--        delete
+--      </button>
+--    </span>
+--  </div>
+-+<hr style="margin: 24px 0;">
+-+
+-+<h3 style="color: #e10000;">Existing Tracks</h3>
+-+
+-+<div class="tracks-list" style="display: flex; flex-wrap: wrap; gap: 16px;">
+-+  <mat-card *ngFor="let track of tracks" class="track-card" style="width: 300px; background-color: #ffffff;">
+-+    <mat-card-content>
+-+      <h4 style="color: #e10000;">{{ track.moderator.firstName }} {{ track.moderator.lastName }}</h4>
+-+      <p><strong>Channel:</strong> {{ track.channel }}</p>
+-+      <p><strong>Start:</strong> {{ track.startTime | date: 'short' }}</p>
+-+      <p><strong>End:</strong> {{ track.endTime | date: 'short' }}</p>
+-+    </mat-card-content>
+-+    <mat-card-actions>
+-+      <button mat-raised-button color="warn" (click)="deleteTrack(track.id!)">Delete</button>
+-+    </mat-card-actions>
+-+  </mat-card>
+- </div>
+diff --git a/ui-optimization-moderators.patch b/ui-optimization-moderators.patch
+deleted file mode 100644
+index 2b4c7c8..0000000
+--- a/ui-optimization-moderators.patch
++++ /dev/null
+@@ -1,2518 +0,0 @@
+-diff --git a/.editorconfig b/.editorconfig
+-deleted file mode 100644
+-index f166060..0000000
+---- a/.editorconfig
+-+++ /dev/null
+-@@ -1,17 +0,0 @@
+--# Editor configuration, see https://editorconfig.org
+--root = true
+--
+--[*]
+--charset = utf-8
+--indent_style = space
+--indent_size = 2
+--insert_final_newline = true
+--trim_trailing_whitespace = true
+--
+--[*.ts]
+--quote_type = single
+--ij_typescript_use_double_quotes = false
+--
+--[*.md]
+--max_line_length = off
+--trim_trailing_whitespace = false
+-diff --git a/.gitignore b/.gitignore
+-deleted file mode 100644
+-index cc7b141..0000000
+---- a/.gitignore
+-+++ /dev/null
+-@@ -1,42 +0,0 @@
+--# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+--
+--# Compiled output
+--/dist
+--/tmp
+--/out-tsc
+--/bazel-out
+--
+--# Node
+--/node_modules
+--npm-debug.log
+--yarn-error.log
+--
+--# IDEs and editors
+--.idea/
+--.project
+--.classpath
+--.c9/
+--*.launch
+--.settings/
+--*.sublime-workspace
+--
+--# Visual Studio Code
+--.vscode/*
+--!.vscode/settings.json
+--!.vscode/tasks.json
+--!.vscode/launch.json
+--!.vscode/extensions.json
+--.history/*
+--
+--# Miscellaneous
+--/.angular/cache
+--.sass-cache/
+--/connect.lock
+--/coverage
+--/libpeerconnection.log
+--testem.log
+--/typings
+--
+--# System files
+--.DS_Store
+--Thumbs.db
+-diff --git a/.vscode/extensions.json b/.vscode/extensions.json
+-deleted file mode 100644
+-index 77b3745..0000000
+---- a/.vscode/extensions.json
+-+++ /dev/null
+-@@ -1,4 +0,0 @@
+--{
+--  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
+--  "recommendations": ["angular.ng-template"]
+--}
+-diff --git a/.vscode/launch.json b/.vscode/launch.json
+-deleted file mode 100644
+-index 925af83..0000000
+---- a/.vscode/launch.json
+-+++ /dev/null
+-@@ -1,20 +0,0 @@
+--{
+--  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+--  "version": "0.2.0",
+--  "configurations": [
+--    {
+--      "name": "ng serve",
+--      "type": "chrome",
+--      "request": "launch",
+--      "preLaunchTask": "npm: start",
+--      "url": "http://localhost:4200/"
+--    },
+--    {
+--      "name": "ng test",
+--      "type": "chrome",
+--      "request": "launch",
+--      "preLaunchTask": "npm: test",
+--      "url": "http://localhost:9876/debug.html"
+--    }
+--  ]
+--}
+-diff --git a/.vscode/tasks.json b/.vscode/tasks.json
+-deleted file mode 100644
+-index a298b5b..0000000
+---- a/.vscode/tasks.json
+-+++ /dev/null
+-@@ -1,42 +0,0 @@
+--{
+--  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
+--  "version": "2.0.0",
+--  "tasks": [
+--    {
+--      "type": "npm",
+--      "script": "start",
+--      "isBackground": true,
+--      "problemMatcher": {
+--        "owner": "typescript",
+--        "pattern": "$tsc",
+--        "background": {
+--          "activeOnStart": true,
+--          "beginsPattern": {
+--            "regexp": "(.*?)"
+--          },
+--          "endsPattern": {
+--            "regexp": "bundle generation complete"
+--          }
+--        }
+--      }
+--    },
+--    {
+--      "type": "npm",
+--      "script": "test",
+--      "isBackground": true,
+--      "problemMatcher": {
+--        "owner": "typescript",
+--        "pattern": "$tsc",
+--        "background": {
+--          "activeOnStart": true,
+--          "beginsPattern": {
+--            "regexp": "(.*?)"
+--          },
+--          "endsPattern": {
+--            "regexp": "bundle generation complete"
+--          }
+--        }
+--      }
+--    }
+--  ]
+--}
+-diff --git a/create_moderation_planner_frontend.sh b/create_moderation_planner_frontend.sh
+-deleted file mode 100755
+-index c66f42c..0000000
+---- a/create_moderation_planner_frontend.sh
+-+++ /dev/null
+-@@ -1,320 +0,0 @@
+--#!/bin/bash
+--
+--# Define project root
+--PROJECT_ROOT="moderation-planner-frontend"
+--
+--# Create Angular project
+--npx -p @angular/cli@latest ng new $PROJECT_ROOT --routing --standalone --style=scss --skip-install
+--
+--cd $PROJECT_ROOT
+--
+--# Install required dependencies
+--npm install
+--npm install @angular/material @angular/forms @fullcalendar/angular @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/interaction
+--
+--# Generate Standalone Components and Services
+--npx ng generate component components/moderators --standalone
+--npx ng generate component components/moderation-tracks --standalone
+--npx ng generate component components/calendar-view --standalone
+--npx ng generate service services/moderator
+--npx ng generate service services/moderation-track
+--
+--# Update main.ts for provideRouter and HttpClient
+--cat <<EOL > src/main.ts
+--import { bootstrapApplication } from '@angular/platform-browser';
+--import { AppComponent } from './app/app.component';
+--import { provideRouter } from '@angular/router';
+--import { routes } from './app/app.routes';
+--import { provideHttpClient } from '@angular/common/http';
+--
+--bootstrapApplication(AppComponent, {
+--  providers: [provideRouter(routes), provideHttpClient()]
+--}).catch(err => console.error(err));
+--EOL
+--
+--# Create app.routes.ts
+--cat <<EOL > src/app/app.routes.ts
+--import { Routes } from '@angular/router';
+--import { ModeratorsComponent } from './components/moderators/moderators.component';
+--import { ModerationTracksComponent } from './components/moderation-tracks/moderation-tracks.component';
+--import { CalendarViewComponent } from './components/calendar-view/calendar-view.component';
+--
+--export const routes: Routes = [
+--  { path: '', redirectTo: '/calendar', pathMatch: 'full' },
+--  { path: 'moderators', component: ModeratorsComponent },
+--  { path: 'moderation-tracks', component: ModerationTracksComponent },
+--  { path: 'calendar', component: CalendarViewComponent },
+--  { path: '**', redirectTo: '/calendar' }
+--];
+--EOL
+--
+--# Create app.component.ts (Standalone)
+--cat <<EOL > src/app/app.component.ts
+--import { Component } from '@angular/core';
+--import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+--
+--@Component({
+--  selector: 'app-root',
+--  standalone: true,
+--  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+--  template: \`
+--    <h1>Moderation Planner</h1>
+--    <nav>
+--      <a routerLink="/calendar" routerLinkActive="active">Calendar</a> |
+--      <a routerLink="/moderators" routerLinkActive="active">Moderators</a> |
+--      <a routerLink="/moderation-tracks" routerLinkActive="active">Moderation Tracks</a>
+--    </nav>
+--    <router-outlet></router-outlet>
+--  \`,
+--  styles: [\`
+--    nav a {
+--      margin-right: 10px;
+--      text-decoration: none;
+--    }
+--    .active {
+--      font-weight: bold;
+--      text-decoration: underline;
+--    }
+--  \`]
+--})
+--export class AppComponent { }
+--EOL
+--
+--# Create Moderator model
+--cat <<EOL > src/app/services/moderator.model.ts
+--export interface Moderator {
+--  id?: string;
+--  firstName: string;
+--  lastName: string;
+--  imageData: string; // Base64 encoded image
+--}
+--EOL
+--
+--# Create ModerationTrack model
+--cat <<EOL > src/app/services/moderation-track.model.ts
+--export interface ModerationTrack {
+--  id?: string;
+--  moderatorId: string;
+--  channel: string;
+--  startTime: string;
+--  endTime: string;
+--}
+--EOL
+--
+--# Create Moderator service
+--cat <<EOL > src/app/services/moderator.service.ts
+--import { Injectable } from '@angular/core';
+--import { HttpClient } from '@angular/common/http';
+--import { Observable } from 'rxjs';
+--import { Moderator } from './moderator.model';
+--
+--@Injectable({
+--  providedIn: 'root'
+--})
+--export class ModeratorService {
+--
+--  private apiUrl = 'http://localhost:8080/api/moderators';
+--
+--  constructor(private http: HttpClient) { }
+--
+--  getModerators(): Observable<Moderator[]> {
+--    return this.http.get<Moderator[]>(this.apiUrl);
+--  }
+--
+--  addModerator(formData: FormData): Observable<Moderator> {
+--    return this.http.post<Moderator>(this.apiUrl, formData);
+--  }
+--
+--  deleteModerator(id: string): Observable<void> {
+--    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+--  }
+--}
+--EOL
+--
+--# Create ModerationTrack service
+--cat <<EOL > src/app/services/moderation-track.service.ts
+--import { Injectable } from '@angular/core';
+--import { HttpClient } from '@angular/common/http';
+--import { Observable } from 'rxjs';
+--import { ModerationTrack } from './moderation-track.model';
+--
+--@Injectable({
+--  providedIn: 'root'
+--})
+--export class ModerationTrackService {
+--
+--  private apiUrl = 'http://localhost:8080/api/tracks';
+--
+--  constructor(private http: HttpClient) { }
+--
+--  getTracks(): Observable<ModerationTrack[]> {
+--    return this.http.get<ModerationTrack[]>(this.apiUrl);
+--  }
+--
+--  addTrack(track: ModerationTrack): Observable<ModerationTrack> {
+--    return this.http.post<ModerationTrack>(this.apiUrl, track);
+--  }
+--
+--  deleteTrack(id: string): Observable<void> {
+--    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+--  }
+--}
+--EOL
+--
+--# Create ModeratorsComponent.ts (Standalone)
+--cat <<EOL > src/app/components/moderators/moderators.component.ts
+--import { Component, OnInit } from '@angular/core';
+--import { CommonModule } from '@angular/common';
+--import { FormsModule } from '@angular/forms';
+--import { ModeratorService } from '../../services/moderator.service';
+--import { Moderator } from '../../services/moderator.model';
+--
+--@Component({
+--  selector: 'app-moderators',
+--  standalone: true,
+--  imports: [CommonModule, FormsModule],
+--  templateUrl: './moderators.component.html',
+--  styleUrls: ['./moderators.component.scss']
+--})
+--export class ModeratorsComponent implements OnInit {
+--
+--  moderators: Moderator[] = [];
+--  firstName: string = '';
+--  lastName: string = '';
+--  selectedFile: File | null = null;
+--  imagePreview: string | ArrayBuffer | null = null;
+--
+--  constructor(private moderatorService: ModeratorService) {}
+--
+--  ngOnInit(): void {
+--    this.loadModerators();
+--  }
+--
+--  loadModerators(): void {
+--    this.moderatorService.getModerators().subscribe(data => {
+--      this.moderators = data;
+--    });
+--  }
+--
+--  onFileSelected(event: any): void {
+--    const file = event.target.files[0];
+--    if (file) {
+--      this.selectedFile = file;
+--
+--      const reader = new FileReader();
+--      reader.onload = () => {
+--        this.imagePreview = reader.result;
+--      };
+--      reader.readAsDataURL(file);
+--    }
+--  }
+--
+--  addModerator(): void {
+--    if (!this.firstName || !this.lastName || !this.selectedFile) {
+--      alert('Please fill all fields and select an image.');
+--      return;
+--    }
+--
+--    const formData = new FormData();
+--    formData.append('firstName', this.firstName);
+--    formData.append('lastName', this.lastName);
+--
+--    if (this.selectedFile) {
+--      formData.append('image', this.selectedFile);
+--    }
+--
+--    this.moderatorService.addModerator(formData).subscribe(() => {
+--      this.loadModerators();
+--      this.firstName = '';
+--      this.lastName = '';
+--      this.selectedFile = null;
+--      this.imagePreview = null;
+--    });
+--  }
+--
+--  deleteModerator(id: string): void {
+--    this.moderatorService.deleteModerator(id).subscribe(() => {
+--      this.loadModerators();
+--    });
+--  }
+--}
+--EOL
+--
+--# Create ModeratorsComponent HTML
+--cat <<EOL > src/app/components/moderators/moderators.component.html
+--<h2>Moderators</h2>
+--
+--<form (ngSubmit)="addModerator()">
+--  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+--  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+--  <input type="file" (change)="onFileSelected(\$event)" required>
+--
+--  <div *ngIf="imagePreview">
+--    <h3>Image Preview:</h3>
+--    <img [src]="imagePreview" alt="Image Preview" width="150">
+--  </div>
+--
+--  <button type="submit">Add Moderator</button>
+--</form>
+--
+--<hr>
+--
+--<ul>
+--  <li *ngFor="let moderator of moderators">
+--    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+--    {{ moderator.firstName }} {{ moderator.lastName }}
+--    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+--  </li>
+--</ul>
+--EOL
+--
+--# Create CalendarViewComponent.ts with FullCalendar Plugins
+--cat <<EOL > src/app/components/calendar-view/calendar-view.component.ts
+--import { Component, OnInit } from '@angular/core';
+--import { FullCalendarModule } from '@fullcalendar/angular';
+--import dayGridPlugin from '@fullcalendar/daygrid';
+--import timeGridPlugin from '@fullcalendar/timegrid';
+--import interactionPlugin from '@fullcalendar/interaction';
+--import { CommonModule } from '@angular/common';
+--import { ModerationTrackService } from '../../services/moderation-track.service';
+--
+--@Component({
+--  selector: 'app-calendar-view',
+--  standalone: true,
+--  imports: [CommonModule, FullCalendarModule],
+--  templateUrl: './calendar-view.component.html',
+--  styleUrls: ['./calendar-view.component.scss']
+--})
+--export class CalendarViewComponent implements OnInit {
+--
+--  calendarOptions: any = {
+--    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+--    initialView: 'dayGridMonth',
+--    events: []
+--  };
+--
+--  constructor(private trackService: ModerationTrackService) {}
+--
+--  ngOnInit(): void {
+--    this.loadTracks();
+--  }
+--
+--  loadTracks(): void {
+--    this.trackService.getTracks().subscribe(tracks => {
+--      this.calendarOptions.events = tracks.map(track => ({
+--        title: \`\${track.channel}\`,
+--        start: track.startTime,
+--        end: track.endTime
+--      }));
+--    });
+--  }
+--}
+--EOL
+--
+--# Create CalendarViewComponent HTML
+--cat <<EOL > src/app/components/calendar-view/calendar-view.component.html
+--<h2>Moderation Calendar</h2>
+--<full-calendar [options]="calendarOptions"></full-calendar>
+--EOL
+--
+--echo "🎉 Angular Frontend mit allen Komponenten, korrektem Routing und Fehlerbehebungen wurde erfolgreich erstellt!"
+-diff --git a/moderation-planner-frontend-moderators-ui-optimization-v2.patch b/moderation-planner-frontend-moderators-ui-optimization-v2.patch
+-deleted file mode 100644
+-index 5bd05d9..0000000
+---- a/moderation-planner-frontend-moderators-ui-optimization-v2.patch
+-+++ /dev/null
+-@@ -1,653 +0,0 @@
+--diff --git a/.editorconfig b/.editorconfig
+--deleted file mode 100644
+--index f166060..0000000
+----- a/.editorconfig
+--+++ /dev/null
+--@@ -1,17 +0,0 @@
+---# Editor configuration, see https://editorconfig.org
+---root = true
+---
+---[*]
+---charset = utf-8
+---indent_style = space
+---indent_size = 2
+---insert_final_newline = true
+---trim_trailing_whitespace = true
+---
+---[*.ts]
+---quote_type = single
+---ij_typescript_use_double_quotes = false
+---
+---[*.md]
+---max_line_length = off
+---trim_trailing_whitespace = false
+--diff --git a/.gitignore b/.gitignore
+--deleted file mode 100644
+--index cc7b141..0000000
+----- a/.gitignore
+--+++ /dev/null
+--@@ -1,42 +0,0 @@
+---# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+---
+---# Compiled output
+---/dist
+---/tmp
+---/out-tsc
+---/bazel-out
+---
+---# Node
+---/node_modules
+---npm-debug.log
+---yarn-error.log
+---
+---# IDEs and editors
+---.idea/
+---.project
+---.classpath
+---.c9/
+---*.launch
+---.settings/
+---*.sublime-workspace
+---
+---# Visual Studio Code
+---.vscode/*
+---!.vscode/settings.json
+---!.vscode/tasks.json
+---!.vscode/launch.json
+---!.vscode/extensions.json
+---.history/*
+---
+---# Miscellaneous
+---/.angular/cache
+---.sass-cache/
+---/connect.lock
+---/coverage
+---/libpeerconnection.log
+---testem.log
+---/typings
+---
+---# System files
+---.DS_Store
+---Thumbs.db
+--diff --git a/.vscode/extensions.json b/.vscode/extensions.json
+--deleted file mode 100644
+--index 77b3745..0000000
+----- a/.vscode/extensions.json
+--+++ /dev/null
+--@@ -1,4 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
+---  "recommendations": ["angular.ng-template"]
+---}
+--diff --git a/.vscode/launch.json b/.vscode/launch.json
+--deleted file mode 100644
+--index 925af83..0000000
+----- a/.vscode/launch.json
+--+++ /dev/null
+--@@ -1,20 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+---  "version": "0.2.0",
+---  "configurations": [
+---    {
+---      "name": "ng serve",
+---      "type": "chrome",
+---      "request": "launch",
+---      "preLaunchTask": "npm: start",
+---      "url": "http://localhost:4200/"
+---    },
+---    {
+---      "name": "ng test",
+---      "type": "chrome",
+---      "request": "launch",
+---      "preLaunchTask": "npm: test",
+---      "url": "http://localhost:9876/debug.html"
+---    }
+---  ]
+---}
+--diff --git a/.vscode/tasks.json b/.vscode/tasks.json
+--deleted file mode 100644
+--index a298b5b..0000000
+----- a/.vscode/tasks.json
+--+++ /dev/null
+--@@ -1,42 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
+---  "version": "2.0.0",
+---  "tasks": [
+---    {
+---      "type": "npm",
+---      "script": "start",
+---      "isBackground": true,
+---      "problemMatcher": {
+---        "owner": "typescript",
+---        "pattern": "$tsc",
+---        "background": {
+---          "activeOnStart": true,
+---          "beginsPattern": {
+---            "regexp": "(.*?)"
+---          },
+---          "endsPattern": {
+---            "regexp": "bundle generation complete"
+---          }
+---        }
+---      }
+---    },
+---    {
+---      "type": "npm",
+---      "script": "test",
+---      "isBackground": true,
+---      "problemMatcher": {
+---        "owner": "typescript",
+---        "pattern": "$tsc",
+---        "background": {
+---          "activeOnStart": true,
+---          "beginsPattern": {
+---            "regexp": "(.*?)"
+---          },
+---          "endsPattern": {
+---            "regexp": "bundle generation complete"
+---          }
+---        }
+---      }
+---    }
+---  ]
+---}
+--diff --git a/create_moderation_planner_frontend.sh b/create_moderation_planner_frontend.sh
+--deleted file mode 100755
+--index c66f42c..0000000
+----- a/create_moderation_planner_frontend.sh
+--+++ /dev/null
+--@@ -1,320 +0,0 @@
+---#!/bin/bash
+---
+---# Define project root
+---PROJECT_ROOT="moderation-planner-frontend"
+---
+---# Create Angular project
+---npx -p @angular/cli@latest ng new $PROJECT_ROOT --routing --standalone --style=scss --skip-install
+---
+---cd $PROJECT_ROOT
+---
+---# Install required dependencies
+---npm install
+---npm install @angular/material @angular/forms @fullcalendar/angular @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/interaction
+---
+---# Generate Standalone Components and Services
+---npx ng generate component components/moderators --standalone
+---npx ng generate component components/moderation-tracks --standalone
+---npx ng generate component components/calendar-view --standalone
+---npx ng generate service services/moderator
+---npx ng generate service services/moderation-track
+---
+---# Update main.ts for provideRouter and HttpClient
+---cat <<EOL > src/main.ts
+---import { bootstrapApplication } from '@angular/platform-browser';
+---import { AppComponent } from './app/app.component';
+---import { provideRouter } from '@angular/router';
+---import { routes } from './app/app.routes';
+---import { provideHttpClient } from '@angular/common/http';
+---
+---bootstrapApplication(AppComponent, {
+---  providers: [provideRouter(routes), provideHttpClient()]
+---}).catch(err => console.error(err));
+---EOL
+---
+---# Create app.routes.ts
+---cat <<EOL > src/app/app.routes.ts
+---import { Routes } from '@angular/router';
+---import { ModeratorsComponent } from './components/moderators/moderators.component';
+---import { ModerationTracksComponent } from './components/moderation-tracks/moderation-tracks.component';
+---import { CalendarViewComponent } from './components/calendar-view/calendar-view.component';
+---
+---export const routes: Routes = [
+---  { path: '', redirectTo: '/calendar', pathMatch: 'full' },
+---  { path: 'moderators', component: ModeratorsComponent },
+---  { path: 'moderation-tracks', component: ModerationTracksComponent },
+---  { path: 'calendar', component: CalendarViewComponent },
+---  { path: '**', redirectTo: '/calendar' }
+---];
+---EOL
+---
+---# Create app.component.ts (Standalone)
+---cat <<EOL > src/app/app.component.ts
+---import { Component } from '@angular/core';
+---import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+---
+---@Component({
+---  selector: 'app-root',
+---  standalone: true,
+---  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+---  template: \`
+---    <h1>Moderation Planner</h1>
+---    <nav>
+---      <a routerLink="/calendar" routerLinkActive="active">Calendar</a> |
+---      <a routerLink="/moderators" routerLinkActive="active">Moderators</a> |
+---      <a routerLink="/moderation-tracks" routerLinkActive="active">Moderation Tracks</a>
+---    </nav>
+---    <router-outlet></router-outlet>
+---  \`,
+---  styles: [\`
+---    nav a {
+---      margin-right: 10px;
+---      text-decoration: none;
+---    }
+---    .active {
+---      font-weight: bold;
+---      text-decoration: underline;
+---    }
+---  \`]
+---})
+---export class AppComponent { }
+---EOL
+---
+---# Create Moderator model
+---cat <<EOL > src/app/services/moderator.model.ts
+---export interface Moderator {
+---  id?: string;
+---  firstName: string;
+---  lastName: string;
+---  imageData: string; // Base64 encoded image
+---}
+---EOL
+---
+---# Create ModerationTrack model
+---cat <<EOL > src/app/services/moderation-track.model.ts
+---export interface ModerationTrack {
+---  id?: string;
+---  moderatorId: string;
+---  channel: string;
+---  startTime: string;
+---  endTime: string;
+---}
+---EOL
+---
+---# Create Moderator service
+---cat <<EOL > src/app/services/moderator.service.ts
+---import { Injectable } from '@angular/core';
+---import { HttpClient } from '@angular/common/http';
+---import { Observable } from 'rxjs';
+---import { Moderator } from './moderator.model';
+---
+---@Injectable({
+---  providedIn: 'root'
+---})
+---export class ModeratorService {
+---
+---  private apiUrl = 'http://localhost:8080/api/moderators';
+---
+---  constructor(private http: HttpClient) { }
+---
+---  getModerators(): Observable<Moderator[]> {
+---    return this.http.get<Moderator[]>(this.apiUrl);
+---  }
+---
+---  addModerator(formData: FormData): Observable<Moderator> {
+---    return this.http.post<Moderator>(this.apiUrl, formData);
+---  }
+---
+---  deleteModerator(id: string): Observable<void> {
+---    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+---  }
+---}
+---EOL
+---
+---# Create ModerationTrack service
+---cat <<EOL > src/app/services/moderation-track.service.ts
+---import { Injectable } from '@angular/core';
+---import { HttpClient } from '@angular/common/http';
+---import { Observable } from 'rxjs';
+---import { ModerationTrack } from './moderation-track.model';
+---
+---@Injectable({
+---  providedIn: 'root'
+---})
+---export class ModerationTrackService {
+---
+---  private apiUrl = 'http://localhost:8080/api/tracks';
+---
+---  constructor(private http: HttpClient) { }
+---
+---  getTracks(): Observable<ModerationTrack[]> {
+---    return this.http.get<ModerationTrack[]>(this.apiUrl);
+---  }
+---
+---  addTrack(track: ModerationTrack): Observable<ModerationTrack> {
+---    return this.http.post<ModerationTrack>(this.apiUrl, track);
+---  }
+---
+---  deleteTrack(id: string): Observable<void> {
+---    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+---  }
+---}
+---EOL
+---
+---# Create ModeratorsComponent.ts (Standalone)
+---cat <<EOL > src/app/components/moderators/moderators.component.ts
+---import { Component, OnInit } from '@angular/core';
+---import { CommonModule } from '@angular/common';
+---import { FormsModule } from '@angular/forms';
+---import { ModeratorService } from '../../services/moderator.service';
+---import { Moderator } from '../../services/moderator.model';
+---
+---@Component({
+---  selector: 'app-moderators',
+---  standalone: true,
+---  imports: [CommonModule, FormsModule],
+---  templateUrl: './moderators.component.html',
+---  styleUrls: ['./moderators.component.scss']
+---})
+---export class ModeratorsComponent implements OnInit {
+---
+---  moderators: Moderator[] = [];
+---  firstName: string = '';
+---  lastName: string = '';
+---  selectedFile: File | null = null;
+---  imagePreview: string | ArrayBuffer | null = null;
+---
+---  constructor(private moderatorService: ModeratorService) {}
+---
+---  ngOnInit(): void {
+---    this.loadModerators();
+---  }
+---
+---  loadModerators(): void {
+---    this.moderatorService.getModerators().subscribe(data => {
+---      this.moderators = data;
+---    });
+---  }
+---
+---  onFileSelected(event: any): void {
+---    const file = event.target.files[0];
+---    if (file) {
+---      this.selectedFile = file;
+---
+---      const reader = new FileReader();
+---      reader.onload = () => {
+---        this.imagePreview = reader.result;
+---      };
+---      reader.readAsDataURL(file);
+---    }
+---  }
+---
+---  addModerator(): void {
+---    if (!this.firstName || !this.lastName || !this.selectedFile) {
+---      alert('Please fill all fields and select an image.');
+---      return;
+---    }
+---
+---    const formData = new FormData();
+---    formData.append('firstName', this.firstName);
+---    formData.append('lastName', this.lastName);
+---
+---    if (this.selectedFile) {
+---      formData.append('image', this.selectedFile);
+---    }
+---
+---    this.moderatorService.addModerator(formData).subscribe(() => {
+---      this.loadModerators();
+---      this.firstName = '';
+---      this.lastName = '';
+---      this.selectedFile = null;
+---      this.imagePreview = null;
+---    });
+---  }
+---
+---  deleteModerator(id: string): void {
+---    this.moderatorService.deleteModerator(id).subscribe(() => {
+---      this.loadModerators();
+---    });
+---  }
+---}
+---EOL
+---
+---# Create ModeratorsComponent HTML
+---cat <<EOL > src/app/components/moderators/moderators.component.html
+---<h2>Moderators</h2>
+---
+---<form (ngSubmit)="addModerator()">
+---  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+---  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+---  <input type="file" (change)="onFileSelected(\$event)" required>
+---
+---  <div *ngIf="imagePreview">
+---    <h3>Image Preview:</h3>
+---    <img [src]="imagePreview" alt="Image Preview" width="150">
+---  </div>
+---
+---  <button type="submit">Add Moderator</button>
+---</form>
+---
+---<hr>
+---
+---<ul>
+---  <li *ngFor="let moderator of moderators">
+---    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+---    {{ moderator.firstName }} {{ moderator.lastName }}
+---    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+---  </li>
+---</ul>
+---EOL
+---
+---# Create CalendarViewComponent.ts with FullCalendar Plugins
+---cat <<EOL > src/app/components/calendar-view/calendar-view.component.ts
+---import { Component, OnInit } from '@angular/core';
+---import { FullCalendarModule } from '@fullcalendar/angular';
+---import dayGridPlugin from '@fullcalendar/daygrid';
+---import timeGridPlugin from '@fullcalendar/timegrid';
+---import interactionPlugin from '@fullcalendar/interaction';
+---import { CommonModule } from '@angular/common';
+---import { ModerationTrackService } from '../../services/moderation-track.service';
+---
+---@Component({
+---  selector: 'app-calendar-view',
+---  standalone: true,
+---  imports: [CommonModule, FullCalendarModule],
+---  templateUrl: './calendar-view.component.html',
+---  styleUrls: ['./calendar-view.component.scss']
+---})
+---export class CalendarViewComponent implements OnInit {
+---
+---  calendarOptions: any = {
+---    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+---    initialView: 'dayGridMonth',
+---    events: []
+---  };
+---
+---  constructor(private trackService: ModerationTrackService) {}
+---
+---  ngOnInit(): void {
+---    this.loadTracks();
+---  }
+---
+---  loadTracks(): void {
+---    this.trackService.getTracks().subscribe(tracks => {
+---      this.calendarOptions.events = tracks.map(track => ({
+---        title: \`\${track.channel}\`,
+---        start: track.startTime,
+---        end: track.endTime
+---      }));
+---    });
+---  }
+---}
+---EOL
+---
+---# Create CalendarViewComponent HTML
+---cat <<EOL > src/app/components/calendar-view/calendar-view.component.html
+---<h2>Moderation Calendar</h2>
+---<full-calendar [options]="calendarOptions"></full-calendar>
+---EOL
+---
+---echo "🎉 Angular Frontend mit allen Komponenten, korrektem Routing und Fehlerbehebungen wurde erfolgreich erstellt!"
+--diff --git a/src/app/components/moderators/moderators.component.html b/src/app/components/moderators/moderators.component.html
+--index 88663c2..d44f8dd 100644
+----- a/src/app/components/moderators/moderators.component.html
+--+++ b/src/app/components/moderators/moderators.component.html
+--@@ -1,24 +1,41 @@
+-- <h2>Moderators</h2>
+-- 
+---<form (ngSubmit)="addModerator()">
+---  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+---  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+---  <input type="file" (change)="onFileSelected($event)" required>
+--+<form (ngSubmit)="addModerator()" class="moderator-form">
+-- 
+---  <div *ngIf="imagePreview">
+--+  <mat-form-field appearance="fill">
+--+    <mat-label>First Name</mat-label>
+--+    <input matInput type="text" [(ngModel)]="firstName" name="firstName" required>
+--+  </mat-form-field>
+--+
+--+  <mat-form-field appearance="fill">
+--+    <mat-label>Last Name</mat-label>
+--+    <input matInput type="text" [(ngModel)]="lastName" name="lastName" required>
+--+  </mat-form-field>
+--+
+--+  <div class="file-upload">
+--+    <button mat-raised-button color="accent" type="button" (click)="fileInput.click()">Select Image</button>
+--+    <input #fileInput type="file" (change)="onFileSelected($event)" hidden required>
+--+    <span *ngIf="selectedFile">{{ selectedFile.name }}</span>
+--+  </div>
+--+
+--+  <div *ngIf="imagePreview" class="image-preview">
+--     <h3>Image Preview:</h3>
+--     <img [src]="imagePreview" alt="Image Preview" width="150">
+--   </div>
+-- 
+---  <button type="submit">Add Moderator</button>
+--+  <button mat-raised-button color="primary" type="submit">Add Moderator</button>
+-- </form>
+-- 
+-- <hr>
+-- 
+---<ul>
+---  <li *ngFor="let moderator of moderators">
+---    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+---    {{ moderator.firstName }} {{ moderator.lastName }}
+---    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+---  </li>
+---</ul>
+--+<div class="moderator-list">
+--+  <mat-card *ngFor="let moderator of moderators" class="moderator-card">
+--+    <img mat-card-image [src]="moderator.imageData" alt="{{moderator.firstName}}">
+--+    <mat-card-content>
+--+      <h3>{{ moderator.firstName }} {{ moderator.lastName }}</h3>
+--+    </mat-card-content>
+--+    <mat-card-actions>
+--+      <button mat-raised-button color="warn" (click)="deleteModerator(moderator.id!)">Delete</button>
+--+    </mat-card-actions>
+--+  </mat-card>
+--+</div>
+--diff --git a/src/app/components/moderators/moderators.component.ts b/src/app/components/moderators/moderators.component.ts
+--index a7933ff..c2f981e 100644
+----- a/src/app/components/moderators/moderators.component.ts
+--+++ b/src/app/components/moderators/moderators.component.ts
+--@@ -1,46 +1,58 @@
+-- import { Component, OnInit } from '@angular/core';
+--+import { HttpClient } from '@angular/common/http';
+-- import { CommonModule } from '@angular/common';
+-- import { FormsModule } from '@angular/forms';
+---import { ModeratorService } from '../../services/moderator.service';
+---import { Moderator } from '../../services/moderator.model';
+--+
+--+// Angular Material Modules
+--+import { MatFormFieldModule } from '@angular/material/form-field';
+--+import { MatInputModule } from '@angular/material/input';
+--+import { MatButtonModule } from '@angular/material/button';
+--+import { MatCardModule } from '@angular/material/card';
+-- 
+-- @Component({
+--   selector: 'app-moderators',
+--   standalone: true,
+---  imports: [CommonModule, FormsModule],
+--+  imports: [
+--+    CommonModule,
+--+    FormsModule,
+--+    MatFormFieldModule,
+--+    MatInputModule,
+--+    MatButtonModule,
+--+    MatCardModule
+--+  ],
+--   templateUrl: './moderators.component.html',
+--   styleUrls: ['./moderators.component.scss']
+-- })
+-- export class ModeratorsComponent implements OnInit {
+-- 
+---  moderators: Moderator[] = [];
+--+  moderators: any[] = [];
+--   firstName: string = '';
+--   lastName: string = '';
+--   selectedFile: File | null = null;
+--   imagePreview: string | ArrayBuffer | null = null;
+-- 
+---  constructor(private moderatorService: ModeratorService) {}
+--+  constructor(private http: HttpClient) {}
+-- 
+--   ngOnInit(): void {
+---    this.loadModerators();
+--+    this.fetchModerators();
+--   }
+-- 
+---  loadModerators(): void {
+---    this.moderatorService.getModerators().subscribe(data => {
+--+  fetchModerators(): void {
+--+    this.http.get<any[]>('/api/moderators').subscribe(data => {
+--       this.moderators = data;
+--     });
+--   }
+-- 
+---  onFileSelected(event: any): void {
+---    const file = event.target.files[0];
+---    if (file) {
+---      this.selectedFile = file;
+--+  onFileSelected(event: Event): void {
+--+    const fileInput = event.target as HTMLInputElement;
+--+    if (fileInput.files && fileInput.files.length > 0) {
+--+      this.selectedFile = fileInput.files[0];
+-- 
+--       const reader = new FileReader();
+--       reader.onload = () => {
+--         this.imagePreview = reader.result;
+--       };
+---      reader.readAsDataURL(file);
+--+      reader.readAsDataURL(this.selectedFile);
+--     }
+--   }
+-- 
+--@@ -53,23 +65,24 @@ export class ModeratorsComponent implements OnInit {
+--     const formData = new FormData();
+--     formData.append('firstName', this.firstName);
+--     formData.append('lastName', this.lastName);
+--+    formData.append('image', this.selectedFile);
+-- 
+---    if (this.selectedFile) {
+---      formData.append('image', this.selectedFile);
+---    }
+---
+---    this.moderatorService.addModerator(formData).subscribe(() => {
+---      this.loadModerators();
+---      this.firstName = '';
+---      this.lastName = '';
+---      this.selectedFile = null;
+---      this.imagePreview = null;
+--+    this.http.post('/api/moderators', formData).subscribe(() => {
+--+      this.fetchModerators();
+--+      this.resetForm();
+--     });
+--   }
+-- 
+--   deleteModerator(id: string): void {
+---    this.moderatorService.deleteModerator(id).subscribe(() => {
+---      this.loadModerators();
+--+    this.http.delete(`/api/moderators/${id}`).subscribe(() => {
+--+      this.fetchModerators();
+--     });
+--   }
+--+
+--+  resetForm(): void {
+--+    this.firstName = '';
+--+    this.lastName = '';
+--+    this.selectedFile = null;
+--+    this.imagePreview = null;
+--+  }
+-- }
+-diff --git a/moderation-planner-frontend-moderators-ui-optimization.patch b/moderation-planner-frontend-moderators-ui-optimization.patch
+-deleted file mode 100644
+-index 5bd05d9..0000000
+---- a/moderation-planner-frontend-moderators-ui-optimization.patch
+-+++ /dev/null
+-@@ -1,653 +0,0 @@
+--diff --git a/.editorconfig b/.editorconfig
+--deleted file mode 100644
+--index f166060..0000000
+----- a/.editorconfig
+--+++ /dev/null
+--@@ -1,17 +0,0 @@
+---# Editor configuration, see https://editorconfig.org
+---root = true
+---
+---[*]
+---charset = utf-8
+---indent_style = space
+---indent_size = 2
+---insert_final_newline = true
+---trim_trailing_whitespace = true
+---
+---[*.ts]
+---quote_type = single
+---ij_typescript_use_double_quotes = false
+---
+---[*.md]
+---max_line_length = off
+---trim_trailing_whitespace = false
+--diff --git a/.gitignore b/.gitignore
+--deleted file mode 100644
+--index cc7b141..0000000
+----- a/.gitignore
+--+++ /dev/null
+--@@ -1,42 +0,0 @@
+---# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+---
+---# Compiled output
+---/dist
+---/tmp
+---/out-tsc
+---/bazel-out
+---
+---# Node
+---/node_modules
+---npm-debug.log
+---yarn-error.log
+---
+---# IDEs and editors
+---.idea/
+---.project
+---.classpath
+---.c9/
+---*.launch
+---.settings/
+---*.sublime-workspace
+---
+---# Visual Studio Code
+---.vscode/*
+---!.vscode/settings.json
+---!.vscode/tasks.json
+---!.vscode/launch.json
+---!.vscode/extensions.json
+---.history/*
+---
+---# Miscellaneous
+---/.angular/cache
+---.sass-cache/
+---/connect.lock
+---/coverage
+---/libpeerconnection.log
+---testem.log
+---/typings
+---
+---# System files
+---.DS_Store
+---Thumbs.db
+--diff --git a/.vscode/extensions.json b/.vscode/extensions.json
+--deleted file mode 100644
+--index 77b3745..0000000
+----- a/.vscode/extensions.json
+--+++ /dev/null
+--@@ -1,4 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
+---  "recommendations": ["angular.ng-template"]
+---}
+--diff --git a/.vscode/launch.json b/.vscode/launch.json
+--deleted file mode 100644
+--index 925af83..0000000
+----- a/.vscode/launch.json
+--+++ /dev/null
+--@@ -1,20 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+---  "version": "0.2.0",
+---  "configurations": [
+---    {
+---      "name": "ng serve",
+---      "type": "chrome",
+---      "request": "launch",
+---      "preLaunchTask": "npm: start",
+---      "url": "http://localhost:4200/"
+---    },
+---    {
+---      "name": "ng test",
+---      "type": "chrome",
+---      "request": "launch",
+---      "preLaunchTask": "npm: test",
+---      "url": "http://localhost:9876/debug.html"
+---    }
+---  ]
+---}
+--diff --git a/.vscode/tasks.json b/.vscode/tasks.json
+--deleted file mode 100644
+--index a298b5b..0000000
+----- a/.vscode/tasks.json
+--+++ /dev/null
+--@@ -1,42 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
+---  "version": "2.0.0",
+---  "tasks": [
+---    {
+---      "type": "npm",
+---      "script": "start",
+---      "isBackground": true,
+---      "problemMatcher": {
+---        "owner": "typescript",
+---        "pattern": "$tsc",
+---        "background": {
+---          "activeOnStart": true,
+---          "beginsPattern": {
+---            "regexp": "(.*?)"
+---          },
+---          "endsPattern": {
+---            "regexp": "bundle generation complete"
+---          }
+---        }
+---      }
+---    },
+---    {
+---      "type": "npm",
+---      "script": "test",
+---      "isBackground": true,
+---      "problemMatcher": {
+---        "owner": "typescript",
+---        "pattern": "$tsc",
+---        "background": {
+---          "activeOnStart": true,
+---          "beginsPattern": {
+---            "regexp": "(.*?)"
+---          },
+---          "endsPattern": {
+---            "regexp": "bundle generation complete"
+---          }
+---        }
+---      }
+---    }
+---  ]
+---}
+--diff --git a/create_moderation_planner_frontend.sh b/create_moderation_planner_frontend.sh
+--deleted file mode 100755
+--index c66f42c..0000000
+----- a/create_moderation_planner_frontend.sh
+--+++ /dev/null
+--@@ -1,320 +0,0 @@
+---#!/bin/bash
+---
+---# Define project root
+---PROJECT_ROOT="moderation-planner-frontend"
+---
+---# Create Angular project
+---npx -p @angular/cli@latest ng new $PROJECT_ROOT --routing --standalone --style=scss --skip-install
+---
+---cd $PROJECT_ROOT
+---
+---# Install required dependencies
+---npm install
+---npm install @angular/material @angular/forms @fullcalendar/angular @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/interaction
+---
+---# Generate Standalone Components and Services
+---npx ng generate component components/moderators --standalone
+---npx ng generate component components/moderation-tracks --standalone
+---npx ng generate component components/calendar-view --standalone
+---npx ng generate service services/moderator
+---npx ng generate service services/moderation-track
+---
+---# Update main.ts for provideRouter and HttpClient
+---cat <<EOL > src/main.ts
+---import { bootstrapApplication } from '@angular/platform-browser';
+---import { AppComponent } from './app/app.component';
+---import { provideRouter } from '@angular/router';
+---import { routes } from './app/app.routes';
+---import { provideHttpClient } from '@angular/common/http';
+---
+---bootstrapApplication(AppComponent, {
+---  providers: [provideRouter(routes), provideHttpClient()]
+---}).catch(err => console.error(err));
+---EOL
+---
+---# Create app.routes.ts
+---cat <<EOL > src/app/app.routes.ts
+---import { Routes } from '@angular/router';
+---import { ModeratorsComponent } from './components/moderators/moderators.component';
+---import { ModerationTracksComponent } from './components/moderation-tracks/moderation-tracks.component';
+---import { CalendarViewComponent } from './components/calendar-view/calendar-view.component';
+---
+---export const routes: Routes = [
+---  { path: '', redirectTo: '/calendar', pathMatch: 'full' },
+---  { path: 'moderators', component: ModeratorsComponent },
+---  { path: 'moderation-tracks', component: ModerationTracksComponent },
+---  { path: 'calendar', component: CalendarViewComponent },
+---  { path: '**', redirectTo: '/calendar' }
+---];
+---EOL
+---
+---# Create app.component.ts (Standalone)
+---cat <<EOL > src/app/app.component.ts
+---import { Component } from '@angular/core';
+---import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+---
+---@Component({
+---  selector: 'app-root',
+---  standalone: true,
+---  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+---  template: \`
+---    <h1>Moderation Planner</h1>
+---    <nav>
+---      <a routerLink="/calendar" routerLinkActive="active">Calendar</a> |
+---      <a routerLink="/moderators" routerLinkActive="active">Moderators</a> |
+---      <a routerLink="/moderation-tracks" routerLinkActive="active">Moderation Tracks</a>
+---    </nav>
+---    <router-outlet></router-outlet>
+---  \`,
+---  styles: [\`
+---    nav a {
+---      margin-right: 10px;
+---      text-decoration: none;
+---    }
+---    .active {
+---      font-weight: bold;
+---      text-decoration: underline;
+---    }
+---  \`]
+---})
+---export class AppComponent { }
+---EOL
+---
+---# Create Moderator model
+---cat <<EOL > src/app/services/moderator.model.ts
+---export interface Moderator {
+---  id?: string;
+---  firstName: string;
+---  lastName: string;
+---  imageData: string; // Base64 encoded image
+---}
+---EOL
+---
+---# Create ModerationTrack model
+---cat <<EOL > src/app/services/moderation-track.model.ts
+---export interface ModerationTrack {
+---  id?: string;
+---  moderatorId: string;
+---  channel: string;
+---  startTime: string;
+---  endTime: string;
+---}
+---EOL
+---
+---# Create Moderator service
+---cat <<EOL > src/app/services/moderator.service.ts
+---import { Injectable } from '@angular/core';
+---import { HttpClient } from '@angular/common/http';
+---import { Observable } from 'rxjs';
+---import { Moderator } from './moderator.model';
+---
+---@Injectable({
+---  providedIn: 'root'
+---})
+---export class ModeratorService {
+---
+---  private apiUrl = 'http://localhost:8080/api/moderators';
+---
+---  constructor(private http: HttpClient) { }
+---
+---  getModerators(): Observable<Moderator[]> {
+---    return this.http.get<Moderator[]>(this.apiUrl);
+---  }
+---
+---  addModerator(formData: FormData): Observable<Moderator> {
+---    return this.http.post<Moderator>(this.apiUrl, formData);
+---  }
+---
+---  deleteModerator(id: string): Observable<void> {
+---    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+---  }
+---}
+---EOL
+---
+---# Create ModerationTrack service
+---cat <<EOL > src/app/services/moderation-track.service.ts
+---import { Injectable } from '@angular/core';
+---import { HttpClient } from '@angular/common/http';
+---import { Observable } from 'rxjs';
+---import { ModerationTrack } from './moderation-track.model';
+---
+---@Injectable({
+---  providedIn: 'root'
+---})
+---export class ModerationTrackService {
+---
+---  private apiUrl = 'http://localhost:8080/api/tracks';
+---
+---  constructor(private http: HttpClient) { }
+---
+---  getTracks(): Observable<ModerationTrack[]> {
+---    return this.http.get<ModerationTrack[]>(this.apiUrl);
+---  }
+---
+---  addTrack(track: ModerationTrack): Observable<ModerationTrack> {
+---    return this.http.post<ModerationTrack>(this.apiUrl, track);
+---  }
+---
+---  deleteTrack(id: string): Observable<void> {
+---    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+---  }
+---}
+---EOL
+---
+---# Create ModeratorsComponent.ts (Standalone)
+---cat <<EOL > src/app/components/moderators/moderators.component.ts
+---import { Component, OnInit } from '@angular/core';
+---import { CommonModule } from '@angular/common';
+---import { FormsModule } from '@angular/forms';
+---import { ModeratorService } from '../../services/moderator.service';
+---import { Moderator } from '../../services/moderator.model';
+---
+---@Component({
+---  selector: 'app-moderators',
+---  standalone: true,
+---  imports: [CommonModule, FormsModule],
+---  templateUrl: './moderators.component.html',
+---  styleUrls: ['./moderators.component.scss']
+---})
+---export class ModeratorsComponent implements OnInit {
+---
+---  moderators: Moderator[] = [];
+---  firstName: string = '';
+---  lastName: string = '';
+---  selectedFile: File | null = null;
+---  imagePreview: string | ArrayBuffer | null = null;
+---
+---  constructor(private moderatorService: ModeratorService) {}
+---
+---  ngOnInit(): void {
+---    this.loadModerators();
+---  }
+---
+---  loadModerators(): void {
+---    this.moderatorService.getModerators().subscribe(data => {
+---      this.moderators = data;
+---    });
+---  }
+---
+---  onFileSelected(event: any): void {
+---    const file = event.target.files[0];
+---    if (file) {
+---      this.selectedFile = file;
+---
+---      const reader = new FileReader();
+---      reader.onload = () => {
+---        this.imagePreview = reader.result;
+---      };
+---      reader.readAsDataURL(file);
+---    }
+---  }
+---
+---  addModerator(): void {
+---    if (!this.firstName || !this.lastName || !this.selectedFile) {
+---      alert('Please fill all fields and select an image.');
+---      return;
+---    }
+---
+---    const formData = new FormData();
+---    formData.append('firstName', this.firstName);
+---    formData.append('lastName', this.lastName);
+---
+---    if (this.selectedFile) {
+---      formData.append('image', this.selectedFile);
+---    }
+---
+---    this.moderatorService.addModerator(formData).subscribe(() => {
+---      this.loadModerators();
+---      this.firstName = '';
+---      this.lastName = '';
+---      this.selectedFile = null;
+---      this.imagePreview = null;
+---    });
+---  }
+---
+---  deleteModerator(id: string): void {
+---    this.moderatorService.deleteModerator(id).subscribe(() => {
+---      this.loadModerators();
+---    });
+---  }
+---}
+---EOL
+---
+---# Create ModeratorsComponent HTML
+---cat <<EOL > src/app/components/moderators/moderators.component.html
+---<h2>Moderators</h2>
+---
+---<form (ngSubmit)="addModerator()">
+---  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+---  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+---  <input type="file" (change)="onFileSelected(\$event)" required>
+---
+---  <div *ngIf="imagePreview">
+---    <h3>Image Preview:</h3>
+---    <img [src]="imagePreview" alt="Image Preview" width="150">
+---  </div>
+---
+---  <button type="submit">Add Moderator</button>
+---</form>
+---
+---<hr>
+---
+---<ul>
+---  <li *ngFor="let moderator of moderators">
+---    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+---    {{ moderator.firstName }} {{ moderator.lastName }}
+---    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+---  </li>
+---</ul>
+---EOL
+---
+---# Create CalendarViewComponent.ts with FullCalendar Plugins
+---cat <<EOL > src/app/components/calendar-view/calendar-view.component.ts
+---import { Component, OnInit } from '@angular/core';
+---import { FullCalendarModule } from '@fullcalendar/angular';
+---import dayGridPlugin from '@fullcalendar/daygrid';
+---import timeGridPlugin from '@fullcalendar/timegrid';
+---import interactionPlugin from '@fullcalendar/interaction';
+---import { CommonModule } from '@angular/common';
+---import { ModerationTrackService } from '../../services/moderation-track.service';
+---
+---@Component({
+---  selector: 'app-calendar-view',
+---  standalone: true,
+---  imports: [CommonModule, FullCalendarModule],
+---  templateUrl: './calendar-view.component.html',
+---  styleUrls: ['./calendar-view.component.scss']
+---})
+---export class CalendarViewComponent implements OnInit {
+---
+---  calendarOptions: any = {
+---    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+---    initialView: 'dayGridMonth',
+---    events: []
+---  };
+---
+---  constructor(private trackService: ModerationTrackService) {}
+---
+---  ngOnInit(): void {
+---    this.loadTracks();
+---  }
+---
+---  loadTracks(): void {
+---    this.trackService.getTracks().subscribe(tracks => {
+---      this.calendarOptions.events = tracks.map(track => ({
+---        title: \`\${track.channel}\`,
+---        start: track.startTime,
+---        end: track.endTime
+---      }));
+---    });
+---  }
+---}
+---EOL
+---
+---# Create CalendarViewComponent HTML
+---cat <<EOL > src/app/components/calendar-view/calendar-view.component.html
+---<h2>Moderation Calendar</h2>
+---<full-calendar [options]="calendarOptions"></full-calendar>
+---EOL
+---
+---echo "🎉 Angular Frontend mit allen Komponenten, korrektem Routing und Fehlerbehebungen wurde erfolgreich erstellt!"
+--diff --git a/src/app/components/moderators/moderators.component.html b/src/app/components/moderators/moderators.component.html
+--index 88663c2..d44f8dd 100644
+----- a/src/app/components/moderators/moderators.component.html
+--+++ b/src/app/components/moderators/moderators.component.html
+--@@ -1,24 +1,41 @@
+-- <h2>Moderators</h2>
+-- 
+---<form (ngSubmit)="addModerator()">
+---  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+---  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+---  <input type="file" (change)="onFileSelected($event)" required>
+--+<form (ngSubmit)="addModerator()" class="moderator-form">
+-- 
+---  <div *ngIf="imagePreview">
+--+  <mat-form-field appearance="fill">
+--+    <mat-label>First Name</mat-label>
+--+    <input matInput type="text" [(ngModel)]="firstName" name="firstName" required>
+--+  </mat-form-field>
+--+
+--+  <mat-form-field appearance="fill">
+--+    <mat-label>Last Name</mat-label>
+--+    <input matInput type="text" [(ngModel)]="lastName" name="lastName" required>
+--+  </mat-form-field>
+--+
+--+  <div class="file-upload">
+--+    <button mat-raised-button color="accent" type="button" (click)="fileInput.click()">Select Image</button>
+--+    <input #fileInput type="file" (change)="onFileSelected($event)" hidden required>
+--+    <span *ngIf="selectedFile">{{ selectedFile.name }}</span>
+--+  </div>
+--+
+--+  <div *ngIf="imagePreview" class="image-preview">
+--     <h3>Image Preview:</h3>
+--     <img [src]="imagePreview" alt="Image Preview" width="150">
+--   </div>
+-- 
+---  <button type="submit">Add Moderator</button>
+--+  <button mat-raised-button color="primary" type="submit">Add Moderator</button>
+-- </form>
+-- 
+-- <hr>
+-- 
+---<ul>
+---  <li *ngFor="let moderator of moderators">
+---    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+---    {{ moderator.firstName }} {{ moderator.lastName }}
+---    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+---  </li>
+---</ul>
+--+<div class="moderator-list">
+--+  <mat-card *ngFor="let moderator of moderators" class="moderator-card">
+--+    <img mat-card-image [src]="moderator.imageData" alt="{{moderator.firstName}}">
+--+    <mat-card-content>
+--+      <h3>{{ moderator.firstName }} {{ moderator.lastName }}</h3>
+--+    </mat-card-content>
+--+    <mat-card-actions>
+--+      <button mat-raised-button color="warn" (click)="deleteModerator(moderator.id!)">Delete</button>
+--+    </mat-card-actions>
+--+  </mat-card>
+--+</div>
+--diff --git a/src/app/components/moderators/moderators.component.ts b/src/app/components/moderators/moderators.component.ts
+--index a7933ff..c2f981e 100644
+----- a/src/app/components/moderators/moderators.component.ts
+--+++ b/src/app/components/moderators/moderators.component.ts
+--@@ -1,46 +1,58 @@
+-- import { Component, OnInit } from '@angular/core';
+--+import { HttpClient } from '@angular/common/http';
+-- import { CommonModule } from '@angular/common';
+-- import { FormsModule } from '@angular/forms';
+---import { ModeratorService } from '../../services/moderator.service';
+---import { Moderator } from '../../services/moderator.model';
+--+
+--+// Angular Material Modules
+--+import { MatFormFieldModule } from '@angular/material/form-field';
+--+import { MatInputModule } from '@angular/material/input';
+--+import { MatButtonModule } from '@angular/material/button';
+--+import { MatCardModule } from '@angular/material/card';
+-- 
+-- @Component({
+--   selector: 'app-moderators',
+--   standalone: true,
+---  imports: [CommonModule, FormsModule],
+--+  imports: [
+--+    CommonModule,
+--+    FormsModule,
+--+    MatFormFieldModule,
+--+    MatInputModule,
+--+    MatButtonModule,
+--+    MatCardModule
+--+  ],
+--   templateUrl: './moderators.component.html',
+--   styleUrls: ['./moderators.component.scss']
+-- })
+-- export class ModeratorsComponent implements OnInit {
+-- 
+---  moderators: Moderator[] = [];
+--+  moderators: any[] = [];
+--   firstName: string = '';
+--   lastName: string = '';
+--   selectedFile: File | null = null;
+--   imagePreview: string | ArrayBuffer | null = null;
+-- 
+---  constructor(private moderatorService: ModeratorService) {}
+--+  constructor(private http: HttpClient) {}
+-- 
+--   ngOnInit(): void {
+---    this.loadModerators();
+--+    this.fetchModerators();
+--   }
+-- 
+---  loadModerators(): void {
+---    this.moderatorService.getModerators().subscribe(data => {
+--+  fetchModerators(): void {
+--+    this.http.get<any[]>('/api/moderators').subscribe(data => {
+--       this.moderators = data;
+--     });
+--   }
+-- 
+---  onFileSelected(event: any): void {
+---    const file = event.target.files[0];
+---    if (file) {
+---      this.selectedFile = file;
+--+  onFileSelected(event: Event): void {
+--+    const fileInput = event.target as HTMLInputElement;
+--+    if (fileInput.files && fileInput.files.length > 0) {
+--+      this.selectedFile = fileInput.files[0];
+-- 
+--       const reader = new FileReader();
+--       reader.onload = () => {
+--         this.imagePreview = reader.result;
+--       };
+---      reader.readAsDataURL(file);
+--+      reader.readAsDataURL(this.selectedFile);
+--     }
+--   }
+-- 
+--@@ -53,23 +65,24 @@ export class ModeratorsComponent implements OnInit {
+--     const formData = new FormData();
+--     formData.append('firstName', this.firstName);
+--     formData.append('lastName', this.lastName);
+--+    formData.append('image', this.selectedFile);
+-- 
+---    if (this.selectedFile) {
+---      formData.append('image', this.selectedFile);
+---    }
+---
+---    this.moderatorService.addModerator(formData).subscribe(() => {
+---      this.loadModerators();
+---      this.firstName = '';
+---      this.lastName = '';
+---      this.selectedFile = null;
+---      this.imagePreview = null;
+--+    this.http.post('/api/moderators', formData).subscribe(() => {
+--+      this.fetchModerators();
+--+      this.resetForm();
+--     });
+--   }
+-- 
+--   deleteModerator(id: string): void {
+---    this.moderatorService.deleteModerator(id).subscribe(() => {
+---      this.loadModerators();
+--+    this.http.delete(`/api/moderators/${id}`).subscribe(() => {
+--+      this.fetchModerators();
+--     });
+--   }
+--+
+--+  resetForm(): void {
+--+    this.firstName = '';
+--+    this.lastName = '';
+--+    this.selectedFile = null;
+--+    this.imagePreview = null;
+--+  }
+-- }
+-diff --git a/moderation-planner-frontend-ui-optimization.patch b/moderation-planner-frontend-ui-optimization.patch
+-deleted file mode 100644
+-index d25d195..0000000
+---- a/moderation-planner-frontend-ui-optimization.patch
+-+++ /dev/null
+-@@ -1,538 +0,0 @@
+--diff --git a/.editorconfig b/.editorconfig
+--deleted file mode 100644
+--index f166060..0000000
+----- a/.editorconfig
+--+++ /dev/null
+--@@ -1,17 +0,0 @@
+---# Editor configuration, see https://editorconfig.org
+---root = true
+---
+---[*]
+---charset = utf-8
+---indent_style = space
+---indent_size = 2
+---insert_final_newline = true
+---trim_trailing_whitespace = true
+---
+---[*.ts]
+---quote_type = single
+---ij_typescript_use_double_quotes = false
+---
+---[*.md]
+---max_line_length = off
+---trim_trailing_whitespace = false
+--diff --git a/.gitignore b/.gitignore
+--deleted file mode 100644
+--index cc7b141..0000000
+----- a/.gitignore
+--+++ /dev/null
+--@@ -1,42 +0,0 @@
+---# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+---
+---# Compiled output
+---/dist
+---/tmp
+---/out-tsc
+---/bazel-out
+---
+---# Node
+---/node_modules
+---npm-debug.log
+---yarn-error.log
+---
+---# IDEs and editors
+---.idea/
+---.project
+---.classpath
+---.c9/
+---*.launch
+---.settings/
+---*.sublime-workspace
+---
+---# Visual Studio Code
+---.vscode/*
+---!.vscode/settings.json
+---!.vscode/tasks.json
+---!.vscode/launch.json
+---!.vscode/extensions.json
+---.history/*
+---
+---# Miscellaneous
+---/.angular/cache
+---.sass-cache/
+---/connect.lock
+---/coverage
+---/libpeerconnection.log
+---testem.log
+---/typings
+---
+---# System files
+---.DS_Store
+---Thumbs.db
+--diff --git a/.vscode/extensions.json b/.vscode/extensions.json
+--deleted file mode 100644
+--index 77b3745..0000000
+----- a/.vscode/extensions.json
+--+++ /dev/null
+--@@ -1,4 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
+---  "recommendations": ["angular.ng-template"]
+---}
+--diff --git a/.vscode/launch.json b/.vscode/launch.json
+--deleted file mode 100644
+--index 925af83..0000000
+----- a/.vscode/launch.json
+--+++ /dev/null
+--@@ -1,20 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+---  "version": "0.2.0",
+---  "configurations": [
+---    {
+---      "name": "ng serve",
+---      "type": "chrome",
+---      "request": "launch",
+---      "preLaunchTask": "npm: start",
+---      "url": "http://localhost:4200/"
+---    },
+---    {
+---      "name": "ng test",
+---      "type": "chrome",
+---      "request": "launch",
+---      "preLaunchTask": "npm: test",
+---      "url": "http://localhost:9876/debug.html"
+---    }
+---  ]
+---}
+--diff --git a/.vscode/tasks.json b/.vscode/tasks.json
+--deleted file mode 100644
+--index a298b5b..0000000
+----- a/.vscode/tasks.json
+--+++ /dev/null
+--@@ -1,42 +0,0 @@
+---{
+---  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
+---  "version": "2.0.0",
+---  "tasks": [
+---    {
+---      "type": "npm",
+---      "script": "start",
+---      "isBackground": true,
+---      "problemMatcher": {
+---        "owner": "typescript",
+---        "pattern": "$tsc",
+---        "background": {
+---          "activeOnStart": true,
+---          "beginsPattern": {
+---            "regexp": "(.*?)"
+---          },
+---          "endsPattern": {
+---            "regexp": "bundle generation complete"
+---          }
+---        }
+---      }
+---    },
+---    {
+---      "type": "npm",
+---      "script": "test",
+---      "isBackground": true,
+---      "problemMatcher": {
+---        "owner": "typescript",
+---        "pattern": "$tsc",
+---        "background": {
+---          "activeOnStart": true,
+---          "beginsPattern": {
+---            "regexp": "(.*?)"
+---          },
+---          "endsPattern": {
+---            "regexp": "bundle generation complete"
+---          }
+---        }
+---      }
+---    }
+---  ]
+---}
+--diff --git a/create_moderation_planner_frontend.sh b/create_moderation_planner_frontend.sh
+--deleted file mode 100755
+--index c66f42c..0000000
+----- a/create_moderation_planner_frontend.sh
+--+++ /dev/null
+--@@ -1,320 +0,0 @@
+---#!/bin/bash
+---
+---# Define project root
+---PROJECT_ROOT="moderation-planner-frontend"
+---
+---# Create Angular project
+---npx -p @angular/cli@latest ng new $PROJECT_ROOT --routing --standalone --style=scss --skip-install
+---
+---cd $PROJECT_ROOT
+---
+---# Install required dependencies
+---npm install
+---npm install @angular/material @angular/forms @fullcalendar/angular @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/interaction
+---
+---# Generate Standalone Components and Services
+---npx ng generate component components/moderators --standalone
+---npx ng generate component components/moderation-tracks --standalone
+---npx ng generate component components/calendar-view --standalone
+---npx ng generate service services/moderator
+---npx ng generate service services/moderation-track
+---
+---# Update main.ts for provideRouter and HttpClient
+---cat <<EOL > src/main.ts
+---import { bootstrapApplication } from '@angular/platform-browser';
+---import { AppComponent } from './app/app.component';
+---import { provideRouter } from '@angular/router';
+---import { routes } from './app/app.routes';
+---import { provideHttpClient } from '@angular/common/http';
+---
+---bootstrapApplication(AppComponent, {
+---  providers: [provideRouter(routes), provideHttpClient()]
+---}).catch(err => console.error(err));
+---EOL
+---
+---# Create app.routes.ts
+---cat <<EOL > src/app/app.routes.ts
+---import { Routes } from '@angular/router';
+---import { ModeratorsComponent } from './components/moderators/moderators.component';
+---import { ModerationTracksComponent } from './components/moderation-tracks/moderation-tracks.component';
+---import { CalendarViewComponent } from './components/calendar-view/calendar-view.component';
+---
+---export const routes: Routes = [
+---  { path: '', redirectTo: '/calendar', pathMatch: 'full' },
+---  { path: 'moderators', component: ModeratorsComponent },
+---  { path: 'moderation-tracks', component: ModerationTracksComponent },
+---  { path: 'calendar', component: CalendarViewComponent },
+---  { path: '**', redirectTo: '/calendar' }
+---];
+---EOL
+---
+---# Create app.component.ts (Standalone)
+---cat <<EOL > src/app/app.component.ts
+---import { Component } from '@angular/core';
+---import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+---
+---@Component({
+---  selector: 'app-root',
+---  standalone: true,
+---  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+---  template: \`
+---    <h1>Moderation Planner</h1>
+---    <nav>
+---      <a routerLink="/calendar" routerLinkActive="active">Calendar</a> |
+---      <a routerLink="/moderators" routerLinkActive="active">Moderators</a> |
+---      <a routerLink="/moderation-tracks" routerLinkActive="active">Moderation Tracks</a>
+---    </nav>
+---    <router-outlet></router-outlet>
+---  \`,
+---  styles: [\`
+---    nav a {
+---      margin-right: 10px;
+---      text-decoration: none;
+---    }
+---    .active {
+---      font-weight: bold;
+---      text-decoration: underline;
+---    }
+---  \`]
+---})
+---export class AppComponent { }
+---EOL
+---
+---# Create Moderator model
+---cat <<EOL > src/app/services/moderator.model.ts
+---export interface Moderator {
+---  id?: string;
+---  firstName: string;
+---  lastName: string;
+---  imageData: string; // Base64 encoded image
+---}
+---EOL
+---
+---# Create ModerationTrack model
+---cat <<EOL > src/app/services/moderation-track.model.ts
+---export interface ModerationTrack {
+---  id?: string;
+---  moderatorId: string;
+---  channel: string;
+---  startTime: string;
+---  endTime: string;
+---}
+---EOL
+---
+---# Create Moderator service
+---cat <<EOL > src/app/services/moderator.service.ts
+---import { Injectable } from '@angular/core';
+---import { HttpClient } from '@angular/common/http';
+---import { Observable } from 'rxjs';
+---import { Moderator } from './moderator.model';
+---
+---@Injectable({
+---  providedIn: 'root'
+---})
+---export class ModeratorService {
+---
+---  private apiUrl = 'http://localhost:8080/api/moderators';
+---
+---  constructor(private http: HttpClient) { }
+---
+---  getModerators(): Observable<Moderator[]> {
+---    return this.http.get<Moderator[]>(this.apiUrl);
+---  }
+---
+---  addModerator(formData: FormData): Observable<Moderator> {
+---    return this.http.post<Moderator>(this.apiUrl, formData);
+---  }
+---
+---  deleteModerator(id: string): Observable<void> {
+---    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+---  }
+---}
+---EOL
+---
+---# Create ModerationTrack service
+---cat <<EOL > src/app/services/moderation-track.service.ts
+---import { Injectable } from '@angular/core';
+---import { HttpClient } from '@angular/common/http';
+---import { Observable } from 'rxjs';
+---import { ModerationTrack } from './moderation-track.model';
+---
+---@Injectable({
+---  providedIn: 'root'
+---})
+---export class ModerationTrackService {
+---
+---  private apiUrl = 'http://localhost:8080/api/tracks';
+---
+---  constructor(private http: HttpClient) { }
+---
+---  getTracks(): Observable<ModerationTrack[]> {
+---    return this.http.get<ModerationTrack[]>(this.apiUrl);
+---  }
+---
+---  addTrack(track: ModerationTrack): Observable<ModerationTrack> {
+---    return this.http.post<ModerationTrack>(this.apiUrl, track);
+---  }
+---
+---  deleteTrack(id: string): Observable<void> {
+---    return this.http.delete<void>(\`\${this.apiUrl}/\${id}\`);
+---  }
+---}
+---EOL
+---
+---# Create ModeratorsComponent.ts (Standalone)
+---cat <<EOL > src/app/components/moderators/moderators.component.ts
+---import { Component, OnInit } from '@angular/core';
+---import { CommonModule } from '@angular/common';
+---import { FormsModule } from '@angular/forms';
+---import { ModeratorService } from '../../services/moderator.service';
+---import { Moderator } from '../../services/moderator.model';
+---
+---@Component({
+---  selector: 'app-moderators',
+---  standalone: true,
+---  imports: [CommonModule, FormsModule],
+---  templateUrl: './moderators.component.html',
+---  styleUrls: ['./moderators.component.scss']
+---})
+---export class ModeratorsComponent implements OnInit {
+---
+---  moderators: Moderator[] = [];
+---  firstName: string = '';
+---  lastName: string = '';
+---  selectedFile: File | null = null;
+---  imagePreview: string | ArrayBuffer | null = null;
+---
+---  constructor(private moderatorService: ModeratorService) {}
+---
+---  ngOnInit(): void {
+---    this.loadModerators();
+---  }
+---
+---  loadModerators(): void {
+---    this.moderatorService.getModerators().subscribe(data => {
+---      this.moderators = data;
+---    });
+---  }
+---
+---  onFileSelected(event: any): void {
+---    const file = event.target.files[0];
+---    if (file) {
+---      this.selectedFile = file;
+---
+---      const reader = new FileReader();
+---      reader.onload = () => {
+---        this.imagePreview = reader.result;
+---      };
+---      reader.readAsDataURL(file);
+---    }
+---  }
+---
+---  addModerator(): void {
+---    if (!this.firstName || !this.lastName || !this.selectedFile) {
+---      alert('Please fill all fields and select an image.');
+---      return;
+---    }
+---
+---    const formData = new FormData();
+---    formData.append('firstName', this.firstName);
+---    formData.append('lastName', this.lastName);
+---
+---    if (this.selectedFile) {
+---      formData.append('image', this.selectedFile);
+---    }
+---
+---    this.moderatorService.addModerator(formData).subscribe(() => {
+---      this.loadModerators();
+---      this.firstName = '';
+---      this.lastName = '';
+---      this.selectedFile = null;
+---      this.imagePreview = null;
+---    });
+---  }
+---
+---  deleteModerator(id: string): void {
+---    this.moderatorService.deleteModerator(id).subscribe(() => {
+---      this.loadModerators();
+---    });
+---  }
+---}
+---EOL
+---
+---# Create ModeratorsComponent HTML
+---cat <<EOL > src/app/components/moderators/moderators.component.html
+---<h2>Moderators</h2>
+---
+---<form (ngSubmit)="addModerator()">
+---  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+---  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+---  <input type="file" (change)="onFileSelected(\$event)" required>
+---
+---  <div *ngIf="imagePreview">
+---    <h3>Image Preview:</h3>
+---    <img [src]="imagePreview" alt="Image Preview" width="150">
+---  </div>
+---
+---  <button type="submit">Add Moderator</button>
+---</form>
+---
+---<hr>
+---
+---<ul>
+---  <li *ngFor="let moderator of moderators">
+---    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+---    {{ moderator.firstName }} {{ moderator.lastName }}
+---    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+---  </li>
+---</ul>
+---EOL
+---
+---# Create CalendarViewComponent.ts with FullCalendar Plugins
+---cat <<EOL > src/app/components/calendar-view/calendar-view.component.ts
+---import { Component, OnInit } from '@angular/core';
+---import { FullCalendarModule } from '@fullcalendar/angular';
+---import dayGridPlugin from '@fullcalendar/daygrid';
+---import timeGridPlugin from '@fullcalendar/timegrid';
+---import interactionPlugin from '@fullcalendar/interaction';
+---import { CommonModule } from '@angular/common';
+---import { ModerationTrackService } from '../../services/moderation-track.service';
+---
+---@Component({
+---  selector: 'app-calendar-view',
+---  standalone: true,
+---  imports: [CommonModule, FullCalendarModule],
+---  templateUrl: './calendar-view.component.html',
+---  styleUrls: ['./calendar-view.component.scss']
+---})
+---export class CalendarViewComponent implements OnInit {
+---
+---  calendarOptions: any = {
+---    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+---    initialView: 'dayGridMonth',
+---    events: []
+---  };
+---
+---  constructor(private trackService: ModerationTrackService) {}
+---
+---  ngOnInit(): void {
+---    this.loadTracks();
+---  }
+---
+---  loadTracks(): void {
+---    this.trackService.getTracks().subscribe(tracks => {
+---      this.calendarOptions.events = tracks.map(track => ({
+---        title: \`\${track.channel}\`,
+---        start: track.startTime,
+---        end: track.endTime
+---      }));
+---    });
+---  }
+---}
+---EOL
+---
+---# Create CalendarViewComponent HTML
+---cat <<EOL > src/app/components/calendar-view/calendar-view.component.html
+---<h2>Moderation Calendar</h2>
+---<full-calendar [options]="calendarOptions"></full-calendar>
+---EOL
+---
+---echo "🎉 Angular Frontend mit allen Komponenten, korrektem Routing und Fehlerbehebungen wurde erfolgreich erstellt!"
+--diff --git a/src/app/components/moderators/moderators.component.html b/src/app/components/moderators/moderators.component.html
+--index 88663c2..e66dfd9 100644
+----- a/src/app/components/moderators/moderators.component.html
+--+++ b/src/app/components/moderators/moderators.component.html
+--@@ -1,24 +1,39 @@
+-- <h2>Moderators</h2>
+-- 
+---<form (ngSubmit)="addModerator()">
+---  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+---  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+---  <input type="file" (change)="onFileSelected($event)" required>
+--+<form (ngSubmit)="addModerator()" class="moderator-form">
+--+  <mat-form-field appearance="fill">
+--+    <mat-label>First Name</mat-label>
+--+    <input matInput type="text" [(ngModel)]="firstName" name="firstName" required>
+--+  </mat-form-field>
+-- 
+---  <div *ngIf="imagePreview">
+--+  <mat-form-field appearance="fill">
+--+    <mat-label>Last Name</mat-label>
+--+    <input matInput type="text" [(ngModel)]="lastName" name="lastName" required>
+--+  </mat-form-field>
+--+
+--+  <mat-form-field appearance="fill">
+--+    <mat-label>Upload Image</mat-label>
+--+    <input type="file" (change)="onFileSelected($event)" required>
+--+  </mat-form-field>
+--+
+--+  <div *ngIf="imagePreview" class="image-preview">
+--     <h3>Image Preview:</h3>
+--     <img [src]="imagePreview" alt="Image Preview" width="150">
+--   </div>
+-- 
+---  <button type="submit">Add Moderator</button>
+--+  <button mat-raised-button color="primary" type="submit">Add Moderator</button>
+-- </form>
+-- 
+-- <hr>
+-- 
+---<ul>
+---  <li *ngFor="let moderator of moderators">
+---    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+---    {{ moderator.firstName }} {{ moderator.lastName }}
+---    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+---  </li>
+---</ul>
+--+<div class="moderator-list">
+--+  <mat-card *ngFor="let moderator of moderators" class="moderator-card">
+--+    <img mat-card-image [src]="moderator.imageData" alt="{{moderator.firstName}}">
+--+    <mat-card-content>
+--+      <h3>{{ moderator.firstName }} {{ moderator.lastName }}</h3>
+--+    </mat-card-content>
+--+    <mat-card-actions>
+--+      <button mat-raised-button color="warn" (click)="deleteModerator(moderator.id!)">Delete</button>
+--+    </mat-card-actions>
+--+  </mat-card>
+--+</div>
+-diff --git a/src/app/components/moderators/moderators.component.html b/src/app/components/moderators/moderators.component.html
+-index 88663c2..33e4b2f 100644
+---- a/src/app/components/moderators/moderators.component.html
+-+++ b/src/app/components/moderators/moderators.component.html
+-@@ -1,24 +1,41 @@
+--<h2>Moderators</h2>
+-+<h2 style="color: #e10000;">Moderators</h2>
+- 
+--<form (ngSubmit)="addModerator()">
+--  <input type="text" [(ngModel)]="firstName" name="firstName" placeholder="First Name" required>
+--  <input type="text" [(ngModel)]="lastName" name="lastName" placeholder="Last Name" required>
+--  <input type="file" (change)="onFileSelected($event)" required>
+-+<form (ngSubmit)="addModerator()" class="moderator-form" style="background-color: #f4f4f4; padding: 16px; border-radius: 8px;">
+- 
+--  <div *ngIf="imagePreview">
+-+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+-+    <mat-label>First Name</mat-label>
+-+    <input matInput type="text" [(ngModel)]="firstName" name="firstName" required>
+-+  </mat-form-field>
+-+
+-+  <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+-+    <mat-label>Last Name</mat-label>
+-+    <input matInput type="text" [(ngModel)]="lastName" name="lastName" required>
+-+  </mat-form-field>
+-+
+-+  <div class="file-upload" style="margin-bottom: 16px;">
+-+    <button mat-raised-button color="accent" type="button" (click)="fileInput.click()">Select Image</button>
+-+    <input #fileInput type="file" (change)="onFileSelected($event)" hidden required>
+-+    <span *ngIf="selectedFile" style="margin-left: 8px;">{{ selectedFile.name }}</span>
+-+  </div>
+-+
+-+  <div *ngIf="imagePreview" class="image-preview" style="margin-bottom: 16px;">
+-     <h3>Image Preview:</h3>
+--    <img [src]="imagePreview" alt="Image Preview" width="150">
+-+    <img [src]="imagePreview" alt="Image Preview" width="150" style="border-radius: 8px;">
+-   </div>
+- 
+--  <button type="submit">Add Moderator</button>
+-+  <button mat-raised-button color="primary" type="submit">Add Moderator</button>
+- </form>
+- 
+--<hr>
+-+<hr style="margin: 24px 0;">
+- 
+--<ul>
+--  <li *ngFor="let moderator of moderators">
+--    <img [src]="moderator.imageData" alt="{{moderator.firstName}}" width="100">
+--    {{ moderator.firstName }} {{ moderator.lastName }}
+--    <button (click)="deleteModerator(moderator.id!)">Delete</button>
+--  </li>
+--</ul>
+-+<div class="moderator-list" style="display: flex; flex-wrap: wrap; gap: 16px;">
+-+  <mat-card *ngFor="let moderator of moderators" class="moderator-card" style="width: 200px; background-color: #ffffff;">
+-+    <img mat-card-image [src]="moderator.imageData" alt="{{moderator.firstName}}">
+-+    <mat-card-content>
+-+      <h3 style="color: #e10000;">{{ moderator.firstName }} {{ moderator.lastName }}</h3>
+-+    </mat-card-content>
+-+    <mat-card-actions>
+-+      <button mat-raised-button color="warn" (click)="deleteModerator(moderator.id!)">Delete</button>
+-+    </mat-card-actions>
+-+  </mat-card>
+-+</div>
+-diff --git a/src/app/components/moderators/moderators.component.ts b/src/app/components/moderators/moderators.component.ts
+-index a7933ff..c2f981e 100644
+---- a/src/app/components/moderators/moderators.component.ts
+-+++ b/src/app/components/moderators/moderators.component.ts
+-@@ -1,46 +1,58 @@
+- import { Component, OnInit } from '@angular/core';
+-+import { HttpClient } from '@angular/common/http';
+- import { CommonModule } from '@angular/common';
+- import { FormsModule } from '@angular/forms';
+--import { ModeratorService } from '../../services/moderator.service';
+--import { Moderator } from '../../services/moderator.model';
+-+
+-+// Angular Material Modules
+-+import { MatFormFieldModule } from '@angular/material/form-field';
+-+import { MatInputModule } from '@angular/material/input';
+-+import { MatButtonModule } from '@angular/material/button';
+-+import { MatCardModule } from '@angular/material/card';
+- 
+- @Component({
+-   selector: 'app-moderators',
+-   standalone: true,
+--  imports: [CommonModule, FormsModule],
+-+  imports: [
+-+    CommonModule,
+-+    FormsModule,
+-+    MatFormFieldModule,
+-+    MatInputModule,
+-+    MatButtonModule,
+-+    MatCardModule
+-+  ],
+-   templateUrl: './moderators.component.html',
+-   styleUrls: ['./moderators.component.scss']
+- })
+- export class ModeratorsComponent implements OnInit {
+- 
+--  moderators: Moderator[] = [];
+-+  moderators: any[] = [];
+-   firstName: string = '';
+-   lastName: string = '';
+-   selectedFile: File | null = null;
+-   imagePreview: string | ArrayBuffer | null = null;
+- 
+--  constructor(private moderatorService: ModeratorService) {}
+-+  constructor(private http: HttpClient) {}
+- 
+-   ngOnInit(): void {
+--    this.loadModerators();
+-+    this.fetchModerators();
+-   }
+- 
+--  loadModerators(): void {
+--    this.moderatorService.getModerators().subscribe(data => {
+-+  fetchModerators(): void {
+-+    this.http.get<any[]>('/api/moderators').subscribe(data => {
+-       this.moderators = data;
+-     });
+-   }
+- 
+--  onFileSelected(event: any): void {
+--    const file = event.target.files[0];
+--    if (file) {
+--      this.selectedFile = file;
+-+  onFileSelected(event: Event): void {
+-+    const fileInput = event.target as HTMLInputElement;
+-+    if (fileInput.files && fileInput.files.length > 0) {
+-+      this.selectedFile = fileInput.files[0];
+- 
+-       const reader = new FileReader();
+-       reader.onload = () => {
+-         this.imagePreview = reader.result;
+-       };
+--      reader.readAsDataURL(file);
+-+      reader.readAsDataURL(this.selectedFile);
+-     }
+-   }
+- 
+-@@ -53,23 +65,24 @@ export class ModeratorsComponent implements OnInit {
+-     const formData = new FormData();
+-     formData.append('firstName', this.firstName);
+-     formData.append('lastName', this.lastName);
+-+    formData.append('image', this.selectedFile);
+- 
+--    if (this.selectedFile) {
+--      formData.append('image', this.selectedFile);
+--    }
+--
+--    this.moderatorService.addModerator(formData).subscribe(() => {
+--      this.loadModerators();
+--      this.firstName = '';
+--      this.lastName = '';
+--      this.selectedFile = null;
+--      this.imagePreview = null;
+-+    this.http.post('/api/moderators', formData).subscribe(() => {
+-+      this.fetchModerators();
+-+      this.resetForm();
+-     });
+-   }
+- 
+-   deleteModerator(id: string): void {
+--    this.moderatorService.deleteModerator(id).subscribe(() => {
+--      this.loadModerators();
+-+    this.http.delete(`/api/moderators/${id}`).subscribe(() => {
+-+      this.fetchModerators();
+-     });
+-   }
+-+
+-+  resetForm(): void {
+-+    this.firstName = '';
+-+    this.lastName = '';
+-+    this.selectedFile = null;
+-+    this.imagePreview = null;
+-+  }
+- }
